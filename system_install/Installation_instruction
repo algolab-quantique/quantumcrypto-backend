@@ -1,0 +1,22 @@
+We recommand setting up a service to maintain your django server running for production.
+An exemple of service file for systemd are contained within this folder.
+
+The bb84 service expect a python virtual environment ready with Django and Daphne installed.
+The redis service expect docker to be installed.
+
+Please inspect the exemple service files, and make adjustments as necessary
+
+On ubutu services can be installed by dropping the service files in /etc/systemd/system/
+Once the file are there, you have to enable and start the services.
+    > service bb84 enable
+    > service redis enable
+    > service bb84 start
+    > service redis start
+
+When the code is updated on the server, you have to
+    1. Activate the Python virtual environment
+        > source ENV/bin/activate
+    2. Do the Django migration
+        > ./update-migrate.sh
+    3. Restart the bb84 service
+        > sudo systemctl restart bb84 

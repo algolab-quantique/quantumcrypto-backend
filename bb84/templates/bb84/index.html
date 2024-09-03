@@ -1,0 +1,39 @@
+{% extends 'bb84/base.html' %}
+{% comment %} index.html {% endcomment %}
+{% load static %}
+
+{% block content %}
+<div class="wrapper">
+  <h1>Jeu de chiffrement quantique avec BB84</h1>
+  <form method="POST">
+    {% csrf_token %}
+    <div class='form-control'>
+      <div>
+        <label for="game">ID</label>
+        <input id="gameid" type="number" name="gameid" required {{game_input_err|safe}}/>
+        {{game_error|safe}}
+      </div>
+      <div>
+        <label for="pseudo">Pseudo</label>
+        <input type="text" id="pseudo" name="pseudo" required {{pseudo_input_err|safe}}><br>
+        {{pseudo_error|safe}}
+      </div>
+      <div class="radio-block">
+        <div class="radio-lang">
+          <label for="html">FR</label><br>
+          <input type="radio" name="lang" value="fr" {{fr_checked}} onclick="updateLangFr()">
+        </div>
+        <div class="radio-lang">
+          <label for="html">EN</label><br>
+          <input type="radio" name="lang" value="en" {{en_checked}} onclick="updateLangEn()">
+        </div>
+        {{lang_error|safe}}
+      </div>
+      <input type="submit" id="start-bnt" class="logging-button" value="Commencer la partie" />
+    </div>
+</form>
+{% endblock content %}
+
+{% block javascript %}
+<script src = "{% static 'js/index.js' %}"></script>
+{% endblock javascript %}
