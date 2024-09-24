@@ -25,7 +25,7 @@ STATICFILES_DIRS = [
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY', default='0123456789')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'channels',
     'bb84',
     'e91',
+    'shared',
 ]
 
 MIDDLEWARE = [

@@ -1,13 +1,18 @@
+import string
 from datetime import timedelta
+from functools import partial
+from typing import List
 
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MaxValueValidator, MinValueValidator
 
-from cryptoweb.models import Game, Player
+from shared.models import Game, generate_code, Player
 
 
 class E91Game(Game):
+    code = models.CharField(default=partial(generate_code, 'e91'),
+                            editable=False, max_length=5)
     photon_number = models.IntegerField(default=10, validators=[
         MaxValueValidator(30),
         MinValueValidator(10)
@@ -17,7 +22,7 @@ class E91Game(Game):
     eve_percentage = models.FloatField(default=0.5)
 
     def save(self, *args, **kwargs):
-        self.type = 'bb84'
+        self.type = 'e91'
         super().save(*args, **kwargs)
 
 
@@ -38,13 +43,13 @@ class E91Player(Player):
 class E91Room(models.Model):
     game_id = models.ForeignKey(Game,
                                 to_field='id',
-                                related_name='rooms',
+                                related_name='e91_rooms',
                                 on_delete=models.CASCADE)
     player1 = models.ForeignKey(E91Player,
-                                related_name='rooms_as_player1',
+                                related_name='e91_rooms_as_player1',
                                 on_delete=models.CASCADE)
     player2 = models.ForeignKey(E91Player,
-                                related_name='rooms_as_player2',
+                                related_name='e91_rooms_as_player2',
                                 on_delete=models.CASCADE)
 
 

@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from cryptoweb.serializers import PlayerSerializer
+from shared.serializers import PlayerSerializer
 from .models import Player, Game
 
 

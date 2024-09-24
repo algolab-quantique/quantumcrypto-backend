@@ -1,13 +1,19 @@
+import string
 from datetime import timedelta
+from functools import partial
+from typing import List
 
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.utils.crypto import get_random_string
 
-from cryptoweb.models import Game, Player
+from shared.models import Game, generate_code, Player
 
 
 class BB84Game(Game):
+    code = models.CharField(default=partial(generate_code, 'bb84'),
+                            editable=False, max_length=5)
     photon_number = models.IntegerField(default=10, validators=[
         MaxValueValidator(30),
         MinValueValidator(10)
@@ -19,6 +25,7 @@ class BB84Game(Game):
     def save(self, *args, **kwargs):
         self.type = 'bb84'
         super().save(*args, **kwargs)
+
 
 class BB84Player(Player):
     NONE = 'N'
@@ -37,13 +44,13 @@ class BB84Player(Player):
 class BB84Room(models.Model):
     game_id = models.ForeignKey(Game,
                                 to_field='id',
-                                related_name='rooms',
+                                related_name='bb84_rooms',
                                 on_delete=models.CASCADE)
     player1 = models.ForeignKey(BB84Player,
-                                related_name='rooms_as_player1',
+                                related_name='bb84_rooms_as_player1',
                                 on_delete=models.CASCADE)
     player2 = models.ForeignKey(BB84Player,
-                                related_name='rooms_as_player2',
+                                related_name='bb84_rooms_as_player2',
                                 on_delete=models.CASCADE)
 
 
