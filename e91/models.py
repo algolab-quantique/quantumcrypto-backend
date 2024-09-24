@@ -7,7 +7,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from cryptoweb.models import Game, Player
 
 
-class BB84Game(Game):
+class E91Game(Game):
     photon_number = models.IntegerField(default=10, validators=[
         MaxValueValidator(30),
         MinValueValidator(10)
@@ -20,7 +20,8 @@ class BB84Game(Game):
         self.type = 'bb84'
         super().save(*args, **kwargs)
 
-class BB84Player(Player):
+
+class E91Player(Player):
     NONE = 'N'
     BOB = 'B'
     ALICE = 'A'
@@ -34,20 +35,20 @@ class BB84Player(Player):
     role = models.CharField(default=NONE, choices=ROLE_CHOICES, max_length=1)
 
 
-class BB84Room(models.Model):
+class E91Room(models.Model):
     game_id = models.ForeignKey(Game,
                                 to_field='id',
                                 related_name='rooms',
                                 on_delete=models.CASCADE)
-    player1 = models.ForeignKey(BB84Player,
+    player1 = models.ForeignKey(E91Player,
                                 related_name='rooms_as_player1',
                                 on_delete=models.CASCADE)
-    player2 = models.ForeignKey(BB84Player,
+    player2 = models.ForeignKey(E91Player,
                                 related_name='rooms_as_player2',
                                 on_delete=models.CASCADE)
 
 
-class BB84Iteration(models.Model):
+class E91Iteration(models.Model):
     CREATED = 'CREATED'
     FINISHED = 'FINISHED'
     STATUS_CHOICES = [
@@ -55,7 +56,7 @@ class BB84Iteration(models.Model):
         (FINISHED, 'Finished')
     ]
 
-    room = models.ForeignKey(BB84Room,
+    room = models.ForeignKey(E91Room,
                              related_name='iterations',
                              on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)

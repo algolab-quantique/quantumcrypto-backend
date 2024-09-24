@@ -1,9 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from bb84 import views
+from cryptoweb import views as v
 
 router = DefaultRouter()
-router.register(r'', views.PlayerViewSet)
+router.register(r'', v.PlayerViewSet)
 router.register(r'games/bb84', views.BB84GameViewSet, basename='bb84game')
 router.register(r'players/bb84', views.BB84PlayerViewSet,
                 basename='bb84player')

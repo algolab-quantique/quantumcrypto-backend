@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from bb84.models import BB84Game, BB84Player, BB84Room, BB84Iteration, Player
+from bb84.models import BB84Game, BB84Player, BB84Room, BB84Iteration
 
 
 class BB84GameSerializer(serializers.ModelSerializer):
@@ -8,12 +8,6 @@ class BB84GameSerializer(serializers.ModelSerializer):
         fields = ['id', 'created', 'num_players', 'player_limit', 'status',
                   'code', 'photon_number', 'eve', 'validation_bits_length',
                   'eve_percentage']
-
-
-class PlayerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Player
-        fields = '__all__'
 
 
 class BB84PlayerSerializer(serializers.ModelSerializer):

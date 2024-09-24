@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'channels',
     'bb84',
+    'e91',
 ]
 
 MIDDLEWARE = [
