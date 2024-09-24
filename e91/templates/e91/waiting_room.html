@@ -1,0 +1,24 @@
+{% extends 'e91/base.html' %}
+{% comment %} e91/game.html {% endcomment %}
+{% load static %}
+
+{% block content %}
+<div class="wrapper">
+    <div class="head" id="waiting_globals" game_id={{game_id}} pseudo={{pseudo}}>
+        <h1>{{strings.Quantum_Encryption_Game_with_BB84}}</h1>
+        <h2>{{strings.Hello}} <span style="color:#2000ff">{{pseudo}}</span>!</h2>
+        <h3 style="text-align:center">{{strings.We_are_waiting_for_other_players_to_join_game}} <span style="color:#2000ff">{{game_id}}</span></h3>
+    </div>
+    <div id="waiting_room" style="text-align:center">
+        <label>{{strings.Number_of_players_currently_logged_in}}</label>
+        <p id="players_count" class="counter">0</p>
+    </div>
+    <div id="error_odd_num_players" class="waiting_error" style="display:none">
+        <label style="color:darkred">{{strings.Odd_number_players_start_new_game}}</label>
+    </div>
+
+</div>
+{% endblock content %}
+{% block javascript %}
+<script src = "{% static 'js/waiting.js' %}"></script>
+{% endblock javascript %}
