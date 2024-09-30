@@ -15,6 +15,7 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 django_asgi_app = get_asgi_application()
 
 import bb84.routing
+import e91.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cryptoweb.settings')
 
@@ -26,7 +27,8 @@ application = ProtocolTypeRouter({
     "http": django_asgi_app,
     "websocket": AuthMiddlewareStack(
         URLRouter(
-            bb84.routing.websocket_urlpatterns
+            bb84.routing.websocket_urlpatterns +
+            e91.routing.websocket_urlpatterns
         )
     ),
 })
