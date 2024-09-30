@@ -11,8 +11,6 @@ from shared.models import Game, generate_code, Player
 
 
 class E91Game(Game):
-    code = models.CharField(default=partial(generate_code, 'e91'),
-                            editable=False, max_length=5)
     photon_number = models.IntegerField(default=10, validators=[
         MaxValueValidator(30),
         MinValueValidator(10)
