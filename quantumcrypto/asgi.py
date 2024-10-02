@@ -1,5 +1,5 @@
 """
-ASGI config for cryptoweb project.
+ASGI config for quantumcrypto project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 
@@ -17,7 +17,7 @@ django_asgi_app = get_asgi_application()
 import bb84.routing
 import e91.routing
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cryptoweb.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'quantumcrypto.settings')
 
 
 # import django.apps.registry as registry
