@@ -7,7 +7,7 @@ class E91GameSerializer(serializers.ModelSerializer):
         model = E91Game
         fields = ['id', 'created', 'num_players', 'player_limit', 'status',
                   'code', 'photon_number', 'eve', 'validation_bits_length',
-                  'eve_percentage']
+                  'eve_percentage', 'alice_bits', 'alice_bases', 'bob_bits', 'bob_bases',]
 
 
 class E91PlayerSerializer(serializers.ModelSerializer):

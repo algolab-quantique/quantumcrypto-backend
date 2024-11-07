@@ -1,5 +1,6 @@
 import json
 import logging
+from math import sin, pi
 from typing import Union
 from django.db import IntegrityError, models
 from django.forms.models import model_to_dict
@@ -286,49 +287,97 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
         return await self.acceptance_message()
 
     async def receive(self, text_data):
-        response = json.loads(text_data)
-        event = response.get("event", None)
-        message = response.get("message", None)
-        if event in ['A_PHOTONS', 'A_BASES', 'B_BASES', 'A_CIPHER',
-                     'NEW_GAME', 'B_KEY', 'RESTART_WITHOUT_EVE',
-                     'HANDSHAKE']:
-            await self.channel_layer.group_send(self.game_group_name, {
-                'type': 'send_message',
-                'message': message,
-                "event": event
-            })
+        try:
+            response = json.loads(text_data)
+            event = response.get("event", None)
+            message = response.get("message", None)
+            game_code = self.scope['url_route']['kwargs']['game_code']
+            abstract_game = await self.get_game(game_code)
+            game = await self.get_specific_game(game_code, abstract_game.type)
+            if event in ['A_PHOTONS', 'A_BASES', 'B_BASES', 'A_CIPHER',
+                         'NEW_GAME', 'B_KEY', 'RESTART_WITHOUT_EVE',
+                         'HANDSHAKE', 'A_PREFERENCE', 'B_PREFERENCE',
+                         'A_DICE', 'B_DICE', 'VALIDATION_INDICES', 'A_BITS', 'B_BITS',
+                         'A_DECISION', 'B_DECISION']:
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': message,
+                    "event": event
+                })
 
-        elif event == 'B_SUCCESS':
-            await self.update_iterations_status_to_finished(message[
-                                                                'player_name'],
-                                                            message[
-                                                                'game_code'])
-            await self.channel_layer.group_send(self.game_group_name, {
-                'type': 'send_message',
-                'message': message,
-                "event": event
-            })
+            elif event == 'A_MEASURE':
+                game.alice_bases = ''.join(message['bases'])
+                eve_present = message['eve_present']
+                if eve_present:
+                    print('Generating unsecure key for Alice')
+                    game.alice_bits = self.eveGeneratedBits(game.alice_bases)
+                elif not game.bob_bits:
+                    print('Generating random key for Alice')
+                    game.alice_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
+                else:
+                    print('Generating entangled key for Alice')
+                    game.alice_bits = self.generateEntangledBits(game.bob_bits, game.bob_bases, game.alice_bases)
 
-        elif event == 'A_KEY':
-            validation_indices = random.sample(range(
-                message['key_length']),
-                message['validation_bits_length'])
-            await self.channel_layer.group_send(self.game_group_name, {
-                'type': 'send_message',
-                'message': {
-                    'key': message['key'],
-                    'validation_indices': validation_indices
-                },
-                "event": event
-            })
-        elif event in ['A_VALIDATED', 'B_VALIDATED']:
-            await self.channel_layer.group_send(self.game_group_name, {
-                'type': 'send_message',
-                'message': {
-                    'valid': message['valid']
-                },
-                'event': event
-            })
+                await self.save_game(game)
+                await self.send_bits(game.alice_bits, 'A')
+
+            elif event == 'B_MEASURE':
+                game.bob_bases = ''.join(message['bases'])
+                eve_present = message['eve_present']
+                if eve_present:
+                    print('Generating unsecure key for Bob')
+                    game.bob_bits = self.eveGeneratedBits(game.bob_bases)
+                elif not game.alice_bits:
+                    print('Generating random bits for Bob')
+                    game.bob_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
+                else:
+                    print('Generating entangled bits for Bob')
+                    game.bob_bits = self.generateEntangledBits(game.alice_bits, game.alice_bases, game.bob_bases)
+
+                await self.save_game(game)
+                await self.send_bits(game.bob_bits, 'B')
+
+            elif event == 'B_SUCCESS':
+                await self.update_iterations_status_to_finished(message[
+                                                                    'player_name'],
+                                                                message[
+                                                                    'game_code'])
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': message,
+                    "event": event
+                })
+
+            elif event == 'A_KEY':
+                validation_indices = random.sample(range(
+                    message['key_length']),
+                    message['validation_bits_length'])
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': {
+                        'key': message['key'],
+                        'validation_indices': validation_indices
+                    },
+                    "event": event
+                })
+            elif event in ['A_VALIDATED', 'B_VALIDATED']:
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': {
+                        'valid': message['valid']
+                    },
+                    'event': event
+                })
+        except Exception as e:
+            print(f"Error in receive method: {e}")
+
+    @database_sync_to_async
+    def save_game(self, game: E91Game):
+        try:
+            game.save()
+        except Exception as e:
+            print(f'Error saving game: {e}')
+            raise
 
     @database_sync_to_async
     def update_iterations_status_to_finished(self, player_name, game_code):
@@ -351,6 +400,16 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
             iteration.status = 'FINISHED'
             iteration.save()
 
+    @database_sync_to_async
+    def get_game(self, game_code: str):
+        return Game.objects.get(code=game_code)
+
+    @database_sync_to_async
+    def get_specific_game(self, game_code: str, game_type: str):
+        if game_type == 'e91':
+            return E91Game.objects.get(code=game_code)
+        return None
+
     async def acceptance_message(self, message: Union[dict, int, str] =
     "Connected") -> None:
         await self.send_message({
@@ -363,6 +422,60 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
             "payload": res,
         }))
 
+    async def send_bits(self, bits, player):
+        await self.channel_layer.group_send(self.game_group_name, {
+            'type': 'send_message',
+            'message': {'bits': bits},
+            'event': f'{player}_MEASURE'
+        })
+
+    def generateEntangledBits(self, bits: str, bases: str, measurement: str) -> str:
+        probability_threshold = sin(pi/8)**2
+        entangled_bits = []
+        for index, bit in enumerate(bits):
+            if bases[index] == measurement[index]:
+                entangled_bits.append(bit)
+                continue
+            rand_value = random.random()
+            if bit == '0':
+                if rand_value > probability_threshold:
+                    outcome = 1
+                else:
+                    outcome = -1
+            else:
+                if rand_value > probability_threshold:
+                    outcome = -1
+                else:
+                    outcome = 1
+
+                # Adjust outcome based on basis comparison
+            if (measurement[index] == '1' and bases[index] == '4') or (measurement[index] == '4' and bases[index] == '1'):
+                outcome *= -1
+
+            entangled_bits.append('0' if outcome == 1 else '1')
+
+        return ''.join(entangled_bits)
+
+    def eveGeneratedBits(self, bases:str) -> str:
+        probability_threshold = sin(pi/8)**2
+        bits = []
+        for index, base in enumerate(bases):
+            rand_value = random.random()
+            if base == '1' or base == '3':
+                if rand_value > probability_threshold:
+                    outcome = 1
+                else:
+                    outcome = -1
+            elif base == '2':
+                outcome = 1
+            elif base == '4':
+                if rand_value > 0.5:
+                    outcome = 1
+                else:
+                    outcome = -1
+            bits.append('0' if outcome == 1 else '1')
+
+        return ''.join(bits)
 
 class ResultsPageConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
@@ -410,7 +523,7 @@ class ResultsPageConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def get_specific_game(self, game_code: str, game_type: str):
-        if game_type == 'bb84':
+        if game_type == 'e91':
             return E91Game.objects.get(code=game_code)
         return None
 

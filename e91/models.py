@@ -15,6 +15,10 @@ class E91Game(Game):
         MaxValueValidator(30),
         MinValueValidator(10)
     ])
+    alice_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
+    alice_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
+    bob_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
+    bob_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
     eve = models.BooleanField(default=False)
     validation_bits_length = models.IntegerField(default=0)
     eve_percentage = models.FloatField(default=0.5)
