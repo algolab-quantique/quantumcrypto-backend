@@ -305,37 +305,56 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                     "event": event
                 })
 
+            elif event == 'SCORE':
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
+
+                iteration.score = message['score']
+                await self.save_iteration(iteration)
+
+
+            elif event == 'EVE_SPOTTED':
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
+
+                iteration.eve_detected = True
+                await self.save_iteration(iteration)
+
             elif event == 'A_MEASURE':
-                game.alice_bases = ''.join(message['bases'])
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
+                iteration.alice_bases = ''.join(message['bases'])
                 eve_present = message['eve_present']
                 if eve_present:
                     print('Generating unsecure key for Alice')
-                    game.alice_bits = self.eveGeneratedBits(game.alice_bases)
-                elif not game.bob_bits:
+                    iteration.alice_bits = self.eveGeneratedBits(iteration.alice_bases)
+                elif not iteration.bob_bits:
                     print('Generating random key for Alice')
-                    game.alice_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
+                    iteration.alice_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
                 else:
                     print('Generating entangled key for Alice')
-                    game.alice_bits = self.generateEntangledBits(game.bob_bits, game.bob_bases, game.alice_bases)
+                    iteration.alice_bits = self.generateEntangledBits(iteration.bob_bits, iteration.bob_bases, iteration.alice_bases)
 
-                await self.save_game(game)
-                await self.send_bits(game.alice_bits, 'A')
+                await self.save_iteration(iteration)
+                await self.send_bits(iteration.alice_bits, 'A')
 
             elif event == 'B_MEASURE':
-                game.bob_bases = ''.join(message['bases'])
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
+                iteration.bob_bases = ''.join(message['bases'])
                 eve_present = message['eve_present']
                 if eve_present:
                     print('Generating unsecure key for Bob')
-                    game.bob_bits = self.eveGeneratedBits(game.bob_bases)
-                elif not game.alice_bits:
+                    iteration.bob_bits = self.eveGeneratedBits(iteration.bob_bases)
+                elif not iteration.alice_bits:
                     print('Generating random bits for Bob')
-                    game.bob_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
+                    iteration.bob_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
                 else:
-                    print('Generating entangled bits for Bob')
-                    game.bob_bits = self.generateEntangledBits(game.alice_bits, game.alice_bases, game.bob_bases)
+                    print('Generating entangled bits for Bob from alices bits: ' + iteration.alice_bits)
+                    iteration.bob_bits = self.generateEntangledBits(iteration.alice_bits, iteration.alice_bases, iteration.bob_bases)
 
-                await self.save_game(game)
-                await self.send_bits(game.bob_bits, 'B')
+                await self.save_iteration(iteration)
+                await self.send_bits(iteration.bob_bits, 'B')
 
             elif event == 'B_SUCCESS':
                 await self.update_iterations_status_to_finished(message[
@@ -380,6 +399,14 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
             raise
 
     @database_sync_to_async
+    def save_iteration(self, iteration: E91Iteration):
+        try:
+            iteration.save()
+        except Exception as e:
+            print(f'Error saving game: {e}')
+            raise
+
+    @database_sync_to_async
     def update_iterations_status_to_finished(self, player_name, game_code):
 
         # Get the game
@@ -409,6 +436,18 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
         if game_type == 'e91':
             return E91Game.objects.get(code=game_code)
         return None
+
+    @database_sync_to_async
+    def get_room(self, game: E91Game, player_name):
+        player = E91Player.objects.get(name=player_name, game_id=game)
+
+        return E91Room.objects.get(models.Q(player1=player) | models.Q(
+            player2=player),
+                                   game_id=game, )
+
+    @database_sync_to_async
+    def get_iteration(self, room: E91Room):
+        return E91Iteration.objects.get(room=room)
 
     async def acceptance_message(self, message: Union[dict, int, str] =
     "Connected") -> None:

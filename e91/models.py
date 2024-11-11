@@ -15,10 +15,6 @@ class E91Game(Game):
         MaxValueValidator(30),
         MinValueValidator(10)
     ])
-    alice_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
-    alice_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
-    bob_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
-    bob_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
     eve = models.BooleanField(default=False)
     validation_bits_length = models.IntegerField(default=0)
     eve_percentage = models.FloatField(default=0.5)
@@ -71,6 +67,15 @@ class E91Iteration(models.Model):
                               default=CREATED,
                               max_length=10)
     eve_present = models.BooleanField(default=False)
+    eve_detected = models.BooleanField(default=False)
+    score = models.IntegerField(default=0, validators=[
+        MaxValueValidator(100),
+        MinValueValidator(0)
+    ])
+    alice_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
+    alice_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
+    bob_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
+    bob_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
     elapsed_time = models.DurationField(null=True, blank=True, default=timedelta)
 
     def save(self, *args, **kwargs):
