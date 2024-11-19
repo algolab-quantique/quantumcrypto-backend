@@ -295,10 +295,22 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
             abstract_game = await self.get_game(game_code)
             game = await self.get_specific_game(game_code, abstract_game.type)
             if event in ['A_PHOTONS', 'A_BASES', 'B_BASES', 'A_CIPHER',
-                         'NEW_GAME', 'B_KEY', 'RESTART_WITHOUT_EVE',
+                         'NEW_GAME', 'B_KEY',
                          'HANDSHAKE', 'A_PREFERENCE', 'B_PREFERENCE',
                          'A_DICE', 'B_DICE', 'VALIDATION_INDICES', 'A_BITS', 'B_BITS',
                          'A_DECISION', 'B_DECISION']:
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': message,
+                    "event": event
+                })
+
+            elif event == 'RESTART_WITHOUT_EVE':
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
+
+                iteration.eve_present = False
+                await self.save_iteration(iteration)
                 await self.channel_layer.group_send(self.game_group_name, {
                     'type': 'send_message',
                     'message': message,
@@ -311,7 +323,10 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
 
                 iteration.score = message['score']
                 await self.save_iteration(iteration)
-
+                await self.update_iterations_status_to_finished(message[
+                                                                    'player_name'],
+                                                                message[
+                                                                    'game_code'])
 
             elif event == 'EVE_SPOTTED':
                 room = await self.get_room(game, message['player_name'])
@@ -357,10 +372,11 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                 await self.send_bits(iteration.bob_bits, 'B')
 
             elif event == 'B_SUCCESS':
-                await self.update_iterations_status_to_finished(message[
-                                                                    'player_name'],
-                                                                message[
-                                                                    'game_code'])
+                if abstract_game.type == 'bb84':
+                    await self.update_iterations_status_to_finished(message[
+                                                                        'player_name'],
+                                                                    message[
+                                                                        'game_code'])
                 await self.channel_layer.group_send(self.game_group_name, {
                     'type': 'send_message',
                     'message': message,
