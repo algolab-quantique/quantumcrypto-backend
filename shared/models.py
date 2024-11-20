@@ -54,6 +54,10 @@ class Player(models.Model):
             models.UniqueConstraint(fields=['name', 'game_id'],
                                     name='unique_game_name'),
         ]
-from django.db import models
 
-# Create your models here.
+
+class GameStatistic(models.Model):
+    protocol_type = models.CharField(max_length=100)
+    ip_address = models.GenericIPAddressField()
+    players_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
