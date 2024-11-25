@@ -60,4 +60,5 @@ class GameStatistic(models.Model):
     protocol_type = models.CharField(max_length=100)
     ip_address = models.GenericIPAddressField()
     players_count = models.PositiveIntegerField(default=0)
+    players_ip_addresses = models.JSONField(default=list)
     created_at = models.DateTimeField(auto_now_add=True)

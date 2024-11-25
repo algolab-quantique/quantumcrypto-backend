@@ -27,10 +27,32 @@ def record_game_statistic(request):
     ip_address = request.META.get('REMOTE_ADDR')
     players_count = data.get('players_count', 1)
 
-    GameStatistic.objects.create(
+    game_stat = GameStatistic.objects.create(
         protocol_type=protocol_type,
         ip_address=ip_address,
         players_count=players_count
     )
-    return Response({"status": "success"})
+    return Response({"status": "success",
+                     "game_id": game_stat.id})
+
+
+@api_view(['POST'])
+def record_player_ip(request):
+    data = request.data
+    game_id = data.get('game_id')
+    ip_address = request.META.get('REMOTE_ADDR')
+
+    try:
+        game_stat = GameStatistic.objects.get(id=game_id)
+
+        if ip_address not in game_stat.players_ip_addresses:
+            game_stat.players_ip_addresses.append(ip_address)
+            game_stat.save()
+
+        return Response({
+            "status": "success"
+        })
+    except GameStatistic.DoesNotExist:
+        return Response({"status": "error", "message": "Game not found"}, status=404)
+
 

@@ -145,6 +145,12 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
 
         elif event == 'START':
             game_code = message['game_code']
+            game_id = message['game_id']
+            await self.channel_layer.group_send(self.game_group_name, {
+                'type': 'send_message',
+                'message': {'game_id': game_id},
+                'event': "GAME_ID"
+            })
             try:
                 game = await self.get_game(game_code)
             except E91Game.DoesNotExist:
