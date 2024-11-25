@@ -1,3 +1,5 @@
+from django.db.models import Count
+from django.http import JsonResponse
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
@@ -54,5 +56,11 @@ def record_player_ip(request):
         })
     except GameStatistic.DoesNotExist:
         return Response({"status": "error", "message": "Game not found"}, status=404)
+
+
+@api_view(['GET'])
+def get_protocol_stats(request):
+    stats = GameStatistic.objects.values('protocol_type').annotate(total_games=Count('protocol_type'))
+    return JsonResponse({'protocols': list(stats)})
 
 
