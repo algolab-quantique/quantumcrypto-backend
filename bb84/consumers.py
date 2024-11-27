@@ -69,7 +69,6 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
                     "message": "Invalid player name",
                     "event": "TAKEN_NAME"
                 })
-                await self.close()
                 return
         return await self.acceptance_message()
 
@@ -131,16 +130,9 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
             game_code = message['game_code']
             player_name = message['player_name']
             game = await self.get_game(game_code)
-            game.num_players -= 1
-            await self.save_game(game)
             player = await self.get_player(game, player_name)
             if player:
                 await self.delete_player(player)
-            await self.channel_layer.group_send(self.game_group_name, {
-                'type': 'send_message',
-                'message': {'count': game.num_players},
-                'event': "PLAYER_COUNT"
-            })
 
         elif event == 'START':
             game_code = message['game_code']
