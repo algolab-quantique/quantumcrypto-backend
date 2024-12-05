@@ -180,12 +180,26 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / LOGGING_CONF[CURRENT_LOG_LEVEL]['filename'],
         },
+        'null': {
+            'level': 'DEBUG',
+            'class': 'logging.NullHandler',
+        },
     },
     'loggers': {
         '': {
             'handlers': ['file'],
             'level': 'DEBUG',
             'propagate': True,
+        },
+        'channels': {
+            'handlers': ['null'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['null'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
 }
