@@ -382,7 +382,6 @@ class ResultsPageConsumer(AsyncJsonWebsocketConsumer):
                 'game_type': game.type,
                 'rooms': rooms
             })
-            print(message)
             return await self.channel_layer.group_send(self.game_group_name, {
                 'type': 'send_message',
                 'message': message,
@@ -421,7 +420,6 @@ class ResultsPageConsumer(AsyncJsonWebsocketConsumer):
         rooms_data = []
         for room in rooms_queryset:
             room_data = model_to_dict(room)
-            # print(room_data)
             iterations_data = []
             for iteration in room.iterations.all():
                 iteration_data = model_to_dict(iteration)

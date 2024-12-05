@@ -339,13 +339,10 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                 iteration.alice_bases = ''.join(message['bases'])
                 eve_present = message['eve_present']
                 if eve_present:
-                    print('Generating unsecure key for Alice')
                     iteration.alice_bits = self.eveGeneratedBits(iteration.alice_bases)
                 elif not iteration.bob_bits:
-                    print('Generating random key for Alice')
                     iteration.alice_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
                 else:
-                    print('Generating entangled key for Alice')
                     iteration.alice_bits = self.generateEntangledBits(iteration.bob_bits, iteration.bob_bases, iteration.alice_bases)
 
                 await self.save_iteration(iteration)
@@ -357,13 +354,10 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                 iteration.bob_bases = ''.join(message['bases'])
                 eve_present = message['eve_present']
                 if eve_present:
-                    print('Generating unsecure key for Bob')
                     iteration.bob_bits = self.eveGeneratedBits(iteration.bob_bases)
                 elif not iteration.alice_bits:
-                    print('Generating random bits for Bob')
                     iteration.bob_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
                 else:
-                    print('Generating entangled bits for Bob from alices bits: ' + iteration.alice_bits)
                     iteration.bob_bits = self.generateEntangledBits(iteration.alice_bits, iteration.alice_bases, iteration.bob_bases)
 
                 await self.save_iteration(iteration)
@@ -550,7 +544,6 @@ class ResultsPageConsumer(AsyncJsonWebsocketConsumer):
                 'game_type': game.type,
                 'rooms': rooms
             })
-            print(message)
             return await self.channel_layer.group_send(self.game_group_name, {
                 'type': 'send_message',
                 'message': message,
@@ -589,7 +582,6 @@ class ResultsPageConsumer(AsyncJsonWebsocketConsumer):
         rooms_data = []
         for room in rooms_queryset:
             room_data = model_to_dict(room)
-            # print(room_data)
             iterations_data = []
             for iteration in room.iterations.all():
                 iteration_data = model_to_dict(iteration)
