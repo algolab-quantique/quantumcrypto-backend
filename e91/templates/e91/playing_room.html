@@ -1,0 +1,208 @@
+{% extends 'e91/base.html' %}
+{% comment %} e91/playing_room.html {% endcomment %}
+{% load static %}
+
+{% block content %}
+<div class="wrapper">
+    <div class="head" id="playing_globals" game_id={{game_id}} room_id={{room_id}} pseudo={{pseudo}}, eve_presence="{{eve_presence}}">
+        <h1>{{strings.Quantum_Encryption_Game_with_BB84}}</h1>
+    </div>
+    <div class="columnGame">
+        <button type="button" class="collapsible collapsible_exchange" id="collapsible_exchange_id">{{strings.Exchange_quantum_information}}</button>
+        <div class="content" id="collapsible_content_exchange">
+            <div id="alice_container">
+                <div id="alice_bits" class="sub_section game_board_section">
+                    <h3>{{strings.Bits_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="alice_bits_inputs">
+                        </form>
+                        <button type="button" class="random_btn" id="random_bit_btn" onclick="onclick_aliceRandomBits()">{{strings.Random}}</button>
+                    </div>
+                </div>
+                <div id="alice_basis" class="sub_section game_board_section">
+                    <h3>{{strings.Base_p_or_x}}</h3>
+                    <div class="form_button">
+                        <form class="" id="alice_basis_inputs">
+                        </form>
+                        <button type="button" class="random_btn" id="alice_random_base_btn" onclick="onclick_aliceRandomBasis()">{{strings.Random}}</button>
+                    </div>
+                </div>
+                <div id="alice_encode" class="sub_section game_board_section">
+                    <h3>{{strings.Photon_polarization}}</h3>
+                    <div>
+                        <table class="table_legend">
+                            <tr class="table_row_alt">
+                                <th style="width:calc(100%/3)">Bit</th>
+                                <th style="width:calc(100%/3)">Base</th>
+                                <th style="width:calc(100%/3)">{{strings.Polarization}}</th></tr>
+                            <tr><td style="text-align:center;">0</td><td style="text-align:center;">+</td><td style="text-align:center;">&#x2194</td></tr>
+                            <tr class="table_row_alt"><td style="text-align:center;">1</td><td style="text-align:center;">+</td><td style="text-align:center;">&#x2195</td></tr>
+                            <tr><td style="text-align:center;">0</td><td style="text-align:center;">x</td><td style="text-align:center;">&#x2197</td></tr>
+                            <tr class="table_row_alt"><td style="text-align:center;">1</td><td style="text-align:center;">x</td><td style="text-align:center;">&#x2196</td></tr>
+                        </table>
+                    </div>
+                    <div class="form_button">
+                        <form class="" id="alice_photons">
+                        </form>
+                        <button type="button" class="random_btn" id="aSend_btn" onclick="onclick_aliceSendBob()">{{strings.Send_to_Bob}}</button>
+                        <button type="button" class="random_btn" id="aValidate_btn" onclick="onclick_aliceValidatePolarization()">{{strings.Validate}}</button>
+                    </div>
+                </div>
+            </div>
+            <div id="bob_container">
+                <div id="bob_alice_photons" class="sub_section game_board_section">
+                    <h3>Photons (*)</h3>
+                    <form class="" id="bob_photons_inputs">
+                    </form>
+                </div>
+                <div id="bob_basis" class="sub_section game_board_section">
+                    <h3>{{strings.Base_p_or_x}}</h3>
+                    <div class="form_button">
+                        <form class="" id="bob_basis_inputs">
+                        </form>
+                        <button type="button" class="random_btn" id="bob_random_base_btn"  onclick="onclick_bobRandomBasis()" disabled>{{strings.Random}}</button>
+                    </div>
+                </div>
+                <div id="button_measure">
+                    <button type="button" class="encode_btn" id="measure_bob_btn" onclick="onclick_bobMeasure()">{{strings.Measure}}</button>
+                </div>
+                <div id="bob_measure_res" class="sub_section game_board_section">
+                    <h3>{{strings.Result_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="bob_bits">
+                        </form>
+                    </div>
+                </div>
+                <div id="button_share">
+                    <button type="button" class="encode_btn" id="bShare_basis" onclick="onclick_bobShareBasis()">{{strings.Share_Basis}}</button>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="collapsible collapsible_reconciliation" id="collapsible_reconciliation_id">{{strings.Basis_reconciliation}}</button>
+        <div class="content" id="collapsible_content_reconciliation">
+            <div id="alice_container_rec">
+                <div id="alice_basis_rec" class="sub_section reconciliation_section">
+                    <h3>{{strings.Base_p_or_x}}</h3>
+                    <div class="form_button">
+                        <form class="" id="alice_basis_inputs_rec">
+                        </form>
+                    </div>
+                </div>
+                <div id="alice_bob_basis_rec" class="sub_section reconciliation_section">
+                    <h3>{{strings.Bobs_base_p_or_x}}</h3>
+                    <div class="form_button">
+                        <form class="" id="alice_bob_basis_inputs_rec">
+                        </form>
+                    </div>
+                </div>
+                <div id="alice_bits_key" class="sub_section reconciliation_section">
+                    <h3>{{strings.Keys_bits_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="alice_key_bits">
+                        </form>
+                        <button type="button" class="random_btn" id="aBasisOk_btn" disabled onclick="onclick_aliceBasisRecOk()">Ok</button>
+                        <button type="button" class="random_btn" id="aBasisValidate_btn" onclick="onclick_aliceBasisValidateRecOk()">{{strings.Validate}}</button>
+                    </div>
+                </div>
+            </div>
+            <div id="bob_container_rec">
+                <div id="bob_basis_rec" class="sub_section reconciliation_section">
+                    <h3>{{strings.Base_p_or_x}}</h3>
+                    <div class="form_button">
+                        <form class="" id="bob_basis_inputs_rec">
+                        </form>
+                    </div>
+                </div>
+                <div id="bob_alice_basis_rec" class="sub_section reconciliation_section">
+                    <h3>{{strings.Alices_base_p_or_x}}</h3>
+                    <div class="form_button">
+                        <form class="" id="bob_alice_basis_inputs_rec">
+                        </form>
+                    </div>
+                </div>
+                <div id="bob_bits_key" class="sub_section reconciliation_section">
+                    <h3>{{strings.Keys_bits_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="bob_key_bits">
+                        </form>
+                        <button type="button" class="random_btn" id="bBasisOk_btn" disabled onclick="onclick_bobBasisRecOk()">Ok</button>
+                        <button type="button" class="random_btn" id="bBasisValidate_btn" onclick="onclick_bobBasisValidateRecOk()">{{strings.Validate}}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="collapsible collapsible_msg" id="collapsible_msg_id">{{strings.Encrypted_messaging}}</button>
+        <div class="content" id="collapsible_content_msg">
+            <div id="alice_container_msg">
+                <div id="alice_your_key" class="sub_section message_section">
+                    <h3>{{strings.Your_key_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="alice_your_key_inputs_msg">
+                        </form>
+                    </div>
+                </div>
+                <div id="alice_your_msg" class="sub_section message_section">
+                    <h3>{{strings.Your_message_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="alice_your_msg_inputs_msg">
+                        </form>
+                    </div>
+                </div>
+                <div id="alice_your_cipher_msg" class="sub_section message_section">
+                    <h3>{{strings.Your_cipher_message_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="alice_your_cipher_inputs_msg">
+                        </form>
+                        <button type="button" class="random_btn" id="aSendCipherMsg_btn" disabled onclick="onclick_aliceCipherSend()">Send</button>
+                        <button type="button" class="random_btn" id="aValidateCipherMsg_btn" onclick="onclick_aliceCipherValidate()">{{strings.Validate}}</button>
+                    </div>
+                </div>
+            </div>
+            <div id="bob_container_msg">
+                <div id="bob_your_key" class="sub_section message_section">
+                    <h3>{{strings.Your_key_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="bob_your_msg_inputs_msg">
+                        </form>
+                    </div>
+                </div>
+                <div id="bob_alice_cipher_msg" class="sub_section message_section">
+                    <h3>{{strings.Alices_cipher_message_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="bob_alice_cipher_inputs_msg">
+                        </form>
+                    </div>
+                </div>
+                <div id="bob_alice_decipher" class="sub_section message_section">
+                    <h3>{{strings.Alice_decipher_message_0_or_1}}</h3>
+                    <div class="form_button">
+                        <form class="" id="bob_alice_decipher_inputs_msg">
+                        </form>
+                        <button type="button" class="random_btn" id="bDecypherMsg_btn" disabled onclick="onclick_bobMsgValidate()">{{strings.Validate}}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columnStatus">
+        <h3 style="text-align:center">{{strings.Game_progression}}</h3>
+        <div id="chat-messages">
+        </div>
+    </div>
+    <div style="float:left;">
+        <button type="button" class="play_again" id="playAgain_sameRole" onclick="onclick_playAgain_sameRole()">{{strings.Play_again_with_same_roles}}</button>
+    </div>
+    <div style="float:right;">
+        <button type="button" class="play_again" id="playAgain_diffRole" onclick="onclick_playAgain_diffRole()">{{strings.Play_again_with_different_roles}}</button>
+    </div>
+</div>
+{% endblock content %}
+
+{% block javascript %}
+{% if lang ==  "fr"%}
+    <script src = "{% static 'js/fr.js' %}"></script>
+{% elif lang ==  "en"%}
+    <script src = "{% static 'js/en.js' %}"></script>
+{% endif %}
+<script src = "{% static 'js/playing.js' %}"></script>
+{% endblock javascript %}

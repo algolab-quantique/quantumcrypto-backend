@@ -1,4 +1,4 @@
-"""cryptoweb URL Configuration
+"""quantumcrypto URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/4.0/topics/http/urls/
@@ -18,6 +18,8 @@ from django.urls import path, include
 
 urlpatterns = [
     path('', include('bb84.urls')),
+    path('', include('e91.urls')),
+    path('', include('shared.urls')),
     path('admin/', admin.site.urls),
     path('api-auth/', include('rest_framework.urls')),
 ]

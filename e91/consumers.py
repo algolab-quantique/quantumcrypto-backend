@@ -1,11 +1,12 @@
 import json
 import logging
+from math import sin, pi
 from typing import Union
 from django.db import IntegrityError, models
 from django.forms.models import model_to_dict
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
-from bb84.models import BB84Game, BB84Player, Game, BB84Room, BB84Iteration
+from e91.models import E91Game, E91Player, Game, E91Room, E91Iteration
 import random
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
         # Get the game instance or close the connection if it doesn't exist
         try:
             game = await self.get_game(game_code)
-        except BB84Game.DoesNotExist:
+        except E91Game.DoesNotExist:
             await self.send_message({
                 "message": "Invalid game code",
                 "event": "INVALID_CODE"
@@ -96,7 +97,7 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
             player_name = message['player_name']
             try:
                 game = await self.get_game(game_code)
-            except BB84Game.DoesNotExist:
+            except E91Game.DoesNotExist:
                 logger.error(f"Player {player_name} not found for game "
                              f"{game_code}.")
                 await self.close()
@@ -144,7 +145,7 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
             })
             try:
                 game = await self.get_game(game_code)
-            except BB84Game.DoesNotExist:
+            except E91Game.DoesNotExist:
                 raise ValueError("Invalid game code")
             players = await self.get_players(game)
             game.status = 'STARTED'
@@ -197,41 +198,41 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def get_game(self, game_code: str):
-        return BB84Game.objects.get(code=game_code)
+        return E91Game.objects.get(code=game_code)
 
     @database_sync_to_async
-    def delete_game(self, game: BB84Game):
+    def delete_game(self, game: E91Game):
         return game.delete()
 
     @database_sync_to_async
-    def get_player(self, game: BB84Game, player_name: str):
-        return BB84Player.objects.get(game_id=game, name=player_name)
+    def get_player(self, game: E91Game, player_name: str):
+        return E91Player.objects.get(game_id=game, name=player_name)
 
     @database_sync_to_async
-    def get_players(self, game: BB84Game):
-        players = list(BB84Player.objects.filter(game_id=game).values())
+    def get_players(self, game: E91Game):
+        players = list(E91Player.objects.filter(game_id=game).values())
         return players
 
     @database_sync_to_async
-    def delete_player(self, player: BB84Player):
+    def delete_player(self, player: E91Player):
         return player.delete()
 
     @database_sync_to_async
-    def create_player(self, player_name: str, game: BB84Game):
+    def create_player(self, player_name: str, game: E91Game):
         try:
-            player = BB84Player.objects.create(name=player_name, game_id=game)
+            player = E91Player.objects.create(name=player_name, game_id=game)
         except Exception as e:
             print(f'Error creating player: {e}')
             raise
         return player
 
     @database_sync_to_async
-    def create_room(self, game, player1: BB84Player, player2: BB84Player,
+    def create_room(self, game, player1: E91Player, player2: E91Player,
                     eve_present: bool):
         try:
-            room = BB84Room.objects.create(game_id=game, player1=player1,
+            room = E91Room.objects.create(game_id=game, player1=player1,
                                            player2=player2)
-            iteration = BB84Iteration.objects.create(room=room,
+            iteration = E91Iteration.objects.create(room=room,
                                                      eve_present=eve_present)
             room.save()
             iteration.save()
@@ -240,7 +241,7 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
             raise
 
     @database_sync_to_async
-    def save_game(self, game: BB84Game):
+    def save_game(self, game: E91Game):
         try:
             game.save()
         except Exception as e:
@@ -248,7 +249,7 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
             raise
 
     @database_sync_to_async
-    def save_player(self, player: BB84Player):
+    def save_player(self, player: E91Player):
         try:
             player.save()
         except Exception as e:
@@ -284,70 +285,177 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
         return await self.acceptance_message()
 
     async def receive(self, text_data):
-        response = json.loads(text_data)
-        event = response.get("event", None)
-        message = response.get("message", None)
-        if event in ['A_PHOTONS', 'A_BASES', 'B_BASES', 'A_CIPHER',
-                     'NEW_GAME', 'B_KEY', 'RESTART_WITHOUT_EVE',
-                     'HANDSHAKE']:
-            await self.channel_layer.group_send(self.game_group_name, {
-                'type': 'send_message',
-                'message': message,
-                "event": event
-            })
+        try:
+            response = json.loads(text_data)
+            event = response.get("event", None)
+            message = response.get("message", None)
+            game_code = self.scope['url_route']['kwargs']['game_code']
+            abstract_game = await self.get_game(game_code)
+            game = await self.get_specific_game(game_code, abstract_game.type)
+            if event in ['A_PHOTONS', 'A_BASES', 'B_BASES', 'A_CIPHER',
+                         'NEW_GAME', 'B_KEY',
+                         'HANDSHAKE', 'A_PREFERENCE', 'B_PREFERENCE',
+                         'A_DICE', 'B_DICE', 'VALIDATION_INDICES', 'A_BITS', 'B_BITS',
+                         'A_DECISION', 'B_DECISION']:
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': message,
+                    "event": event
+                })
 
-        elif event == 'B_SUCCESS':
-            await self.update_iterations_status_to_finished(message[
-                                                                'player_name'],
-                                                            message[
-                                                                'game_code'])
-            await self.channel_layer.group_send(self.game_group_name, {
-                'type': 'send_message',
-                'message': message,
-                "event": event
-            })
+            elif event == 'RESTART_WITHOUT_EVE':
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
 
-        elif event == 'A_KEY':
-            validation_indices = random.sample(range(
-                message['key_length']),
-                message['validation_bits_length'])
-            await self.channel_layer.group_send(self.game_group_name, {
-                'type': 'send_message',
-                'message': {
-                    'key': message['key'],
-                    'validation_indices': validation_indices
-                },
-                "event": event
-            })
-        elif event in ['A_VALIDATED', 'B_VALIDATED']:
-            await self.channel_layer.group_send(self.game_group_name, {
-                'type': 'send_message',
-                'message': {
-                    'valid': message['valid']
-                },
-                'event': event
-            })
+                iteration.eve_present = False
+                await self.save_iteration(iteration)
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': message,
+                    "event": event
+                })
+
+            elif event == 'SCORE':
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
+
+                iteration.score = message['score']
+                await self.save_iteration(iteration)
+                await self.update_iterations_status_to_finished(message[
+                                                                    'player_name'],
+                                                                message[
+                                                                    'game_code'])
+
+            elif event == 'EVE_SPOTTED':
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
+
+                iteration.eve_detected = True
+                await self.save_iteration(iteration)
+
+            elif event == 'A_MEASURE':
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
+                iteration.alice_bases = ''.join(message['bases'])
+                eve_present = message['eve_present']
+                if eve_present:
+                    iteration.alice_bits = self.eveGeneratedBits(iteration.alice_bases)
+                elif not iteration.bob_bits:
+                    iteration.alice_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
+                else:
+                    iteration.alice_bits = self.generateEntangledBits(iteration.bob_bits, iteration.bob_bases, iteration.alice_bases)
+
+                await self.save_iteration(iteration)
+                await self.send_bits(iteration.alice_bits, 'A')
+
+            elif event == 'B_MEASURE':
+                room = await self.get_room(game, message['player_name'])
+                iteration = await self.get_iteration(room)
+                iteration.bob_bases = ''.join(message['bases'])
+                eve_present = message['eve_present']
+                if eve_present:
+                    iteration.bob_bits = self.eveGeneratedBits(iteration.bob_bases)
+                elif not iteration.alice_bits:
+                    iteration.bob_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
+                else:
+                    iteration.bob_bits = self.generateEntangledBits(iteration.alice_bits, iteration.alice_bases, iteration.bob_bases)
+
+                await self.save_iteration(iteration)
+                await self.send_bits(iteration.bob_bits, 'B')
+
+            elif event == 'B_SUCCESS':
+                if abstract_game.type == 'bb84':
+                    await self.update_iterations_status_to_finished(message[
+                                                                        'player_name'],
+                                                                    message[
+                                                                        'game_code'])
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': message,
+                    "event": event
+                })
+
+            elif event == 'A_KEY':
+                validation_indices = random.sample(range(
+                    message['key_length']),
+                    message['validation_bits_length'])
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': {
+                        'key': message['key'],
+                        'validation_indices': validation_indices
+                    },
+                    "event": event
+                })
+            elif event in ['A_VALIDATED', 'B_VALIDATED']:
+                await self.channel_layer.group_send(self.game_group_name, {
+                    'type': 'send_message',
+                    'message': {
+                        'valid': message['valid']
+                    },
+                    'event': event
+                })
+        except Exception as e:
+            print(f"Error in receive method: {e}")
+
+    @database_sync_to_async
+    def save_game(self, game: E91Game):
+        try:
+            game.save()
+        except Exception as e:
+            print(f'Error saving game: {e}')
+            raise
+
+    @database_sync_to_async
+    def save_iteration(self, iteration: E91Iteration):
+        try:
+            iteration.save()
+        except Exception as e:
+            print(f'Error saving game: {e}')
+            raise
 
     @database_sync_to_async
     def update_iterations_status_to_finished(self, player_name, game_code):
 
         # Get the game
         game = Game.objects.get(code=game_code)
-        player = BB84Player.objects.get(name=player_name, game_id=game)
+        player = E91Player.objects.get(name=player_name, game_id=game)
 
         # Get the room
-        room = BB84Room.objects.get(models.Q(player1=player) | models.Q(
+        room = E91Room.objects.get(models.Q(player1=player) | models.Q(
             player2=player),
                                     game_id=game, )
 
         # Get the created iterations for the room
-        created_iterations = BB84Iteration.objects.filter(room=room,
+        created_iterations = E91Iteration.objects.filter(room=room,
                                                           status='CREATED')
 
         # Update status to 'FINISHED' and save
         for iteration in created_iterations:
             iteration.status = 'FINISHED'
             iteration.save()
+
+    @database_sync_to_async
+    def get_game(self, game_code: str):
+        return Game.objects.get(code=game_code)
+
+    @database_sync_to_async
+    def get_specific_game(self, game_code: str, game_type: str):
+        if game_type == 'e91':
+            return E91Game.objects.get(code=game_code)
+        return None
+
+    @database_sync_to_async
+    def get_room(self, game: E91Game, player_name):
+        player = E91Player.objects.get(name=player_name, game_id=game)
+
+        return E91Room.objects.get(models.Q(player1=player) | models.Q(
+            player2=player),
+                                   game_id=game, )
+
+    @database_sync_to_async
+    def get_iteration(self, room: E91Room):
+        return E91Iteration.objects.get(room=room)
 
     async def acceptance_message(self, message: Union[dict, int, str] =
     "Connected") -> None:
@@ -361,6 +469,60 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
             "payload": res,
         }))
 
+    async def send_bits(self, bits, player):
+        await self.channel_layer.group_send(self.game_group_name, {
+            'type': 'send_message',
+            'message': {'bits': bits},
+            'event': f'{player}_MEASURE'
+        })
+
+    def generateEntangledBits(self, bits: str, bases: str, measurement: str) -> str:
+        probability_threshold = sin(pi/8)**2
+        entangled_bits = []
+        for index, bit in enumerate(bits):
+            if bases[index] == measurement[index]:
+                entangled_bits.append(bit)
+                continue
+            rand_value = random.random()
+            if bit == '0':
+                if rand_value > probability_threshold:
+                    outcome = 1
+                else:
+                    outcome = -1
+            else:
+                if rand_value > probability_threshold:
+                    outcome = -1
+                else:
+                    outcome = 1
+
+                # Adjust outcome based on basis comparison
+            if (measurement[index] == '1' and bases[index] == '4') or (measurement[index] == '4' and bases[index] == '1'):
+                outcome *= -1
+
+            entangled_bits.append('0' if outcome == 1 else '1')
+
+        return ''.join(entangled_bits)
+
+    def eveGeneratedBits(self, bases:str) -> str:
+        probability_threshold = sin(pi/8)**2
+        bits = []
+        for index, base in enumerate(bases):
+            rand_value = random.random()
+            if base == '1' or base == '3':
+                if rand_value > probability_threshold:
+                    outcome = 1
+                else:
+                    outcome = -1
+            elif base == '2':
+                outcome = 1
+            elif base == '4':
+                if rand_value > 0.5:
+                    outcome = 1
+                else:
+                    outcome = -1
+            bits.append('0' if outcome == 1 else '1')
+
+        return ''.join(bits)
 
 class ResultsPageConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
@@ -407,13 +569,13 @@ class ResultsPageConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def get_specific_game(self, game_code: str, game_type: str):
-        if game_type == 'bb84':
-            return BB84Game.objects.get(code=game_code)
+        if game_type == 'e91':
+            return E91Game.objects.get(code=game_code)
         return None
 
     @database_sync_to_async
     def get_rooms_with_iterations(self, game):
-        rooms_queryset = BB84Room.objects.filter(
+        rooms_queryset = E91Room.objects.filter(
             game_id=game).prefetch_related(
             'iterations')
 

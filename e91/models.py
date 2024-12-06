@@ -6,12 +6,11 @@ from typing import List
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.utils.crypto import get_random_string
 
 from shared.models import Game, generate_code, Player
 
 
-class BB84Game(Game):
+class E91Game(Game):
     photon_number = models.IntegerField(default=10, validators=[
         MaxValueValidator(30),
         MinValueValidator(10)
@@ -21,11 +20,11 @@ class BB84Game(Game):
     eve_percentage = models.FloatField(default=0.5)
 
     def save(self, *args, **kwargs):
-        self.type = 'bb84'
+        self.type = 'e91'
         super().save(*args, **kwargs)
 
 
-class BB84Player(Player):
+class E91Player(Player):
     NONE = 'N'
     BOB = 'B'
     ALICE = 'A'
@@ -39,20 +38,20 @@ class BB84Player(Player):
     role = models.CharField(default=NONE, choices=ROLE_CHOICES, max_length=1)
 
 
-class BB84Room(models.Model):
+class E91Room(models.Model):
     game_id = models.ForeignKey(Game,
                                 to_field='id',
-                                related_name='bb84_rooms',
+                                related_name='e91_rooms',
                                 on_delete=models.CASCADE)
-    player1 = models.ForeignKey(BB84Player,
-                                related_name='bb84_rooms_as_player1',
+    player1 = models.ForeignKey(E91Player,
+                                related_name='e91_rooms_as_player1',
                                 on_delete=models.CASCADE)
-    player2 = models.ForeignKey(BB84Player,
-                                related_name='bb84_rooms_as_player2',
+    player2 = models.ForeignKey(E91Player,
+                                related_name='e91_rooms_as_player2',
                                 on_delete=models.CASCADE)
 
 
-class BB84Iteration(models.Model):
+class E91Iteration(models.Model):
     CREATED = 'CREATED'
     FINISHED = 'FINISHED'
     STATUS_CHOICES = [
@@ -60,7 +59,7 @@ class BB84Iteration(models.Model):
         (FINISHED, 'Finished')
     ]
 
-    room = models.ForeignKey(BB84Room,
+    room = models.ForeignKey(E91Room,
                              related_name='iterations',
                              on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
@@ -68,6 +67,15 @@ class BB84Iteration(models.Model):
                               default=CREATED,
                               max_length=10)
     eve_present = models.BooleanField(default=False)
+    eve_detected = models.BooleanField(default=False)
+    score = models.IntegerField(default=0, validators=[
+        MaxValueValidator(100),
+        MinValueValidator(0)
+    ])
+    alice_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
+    alice_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
+    bob_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
+    bob_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
     elapsed_time = models.DurationField(null=True, blank=True, default=timedelta)
 
     def save(self, *args, **kwargs):

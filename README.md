@@ -6,6 +6,12 @@ Welcome to the backend repository of QuantumCrypto! This project serves as the b
 
 QuantumCrypto is an open-source web framework designed to provide an intuitive interface for experimenting with QKD protocols. By gamifying QKD protocols, users can simulate and explore quantum cryptography concepts in real-time interactions.
 
+## Prerequisites
+Ensure the following tools are installed on your machine:
+   -Python (preferably with a virtual environment like Miniconda)
+   -Docker
+   -Docker Desktop (optional, but recommender for managing Docker containers)
+
 ## Running Locally
 
 To run the QuantumCrypto backend locally, follow these steps:
@@ -39,6 +45,7 @@ To run the QuantumCrypto backend locally, follow these steps:
 
 6. Run migrations to create the database schema:
    ```
+   python manage.py makemigrations
    python manage.py migrate --run-syncdb 
    ```
 
@@ -47,7 +54,12 @@ To run the QuantumCrypto backend locally, follow these steps:
    python manage.py runserver
    ```
 
-8. Open your browser and visit `http://localhost:8000` to access the QuantumCrypto backend API.
+8. Start the Redis Docker container that handles the WebSockets:
+   ```
+   docker run --rm -p 6379:6379 -d redis:5
+   ```
+
+9. Open your browser and visit `http://localhost:8000` to access the QuantumCrypto backend API.
 
 **Note:** Make sure to also run the frontend server locally for full functionality. You can find the frontend repository [here](https://github.com/algolab-quantique/quantumcrypto-frontend).
 
