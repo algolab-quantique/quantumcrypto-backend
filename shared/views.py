@@ -38,11 +38,20 @@ def record_game_statistic(request):
                      "game_id": game_stat.id})
 
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
 @api_view(['POST'])
 def record_player_ip(request):
     data = request.data
     game_id = data.get('game_id')
-    ip_address = request.META.get('REMOTE_ADDR')
+    ip_address = get_client_ip(request)
 
     try:
         game_stat = GameStatistic.objects.get(id=game_id)
