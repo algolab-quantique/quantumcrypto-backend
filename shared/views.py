@@ -24,9 +24,10 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 def record_game_statistic(request):
+    debug_headers(request)
     data = request.data
     protocol_type = data.get('protocol_type')
-    ip_address = request.META.get('REMOTE_ADDR')
+    ip_address = get_client_ip(request)
     players_count = data.get('players_count', 1)
 
     game_stat = GameStatistic.objects.create(
@@ -47,8 +48,15 @@ def get_client_ip(request):
     return ip
 
 
+def debug_headers(request):
+    for key, value in request.META.items():
+        print(f"{key}: {value}")
+    return Response({"status": "debug complete"})
+
+
 @api_view(['POST'])
 def record_player_ip(request):
+    debug_headers(request)
     data = request.data
     game_id = data.get('game_id')
     ip_address = get_client_ip(request)
