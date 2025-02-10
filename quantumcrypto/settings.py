@@ -204,9 +204,7 @@ LOGGING = {
     },
 }
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
+CORS_ORIGIN_ALLOW_ALL = True
 
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
