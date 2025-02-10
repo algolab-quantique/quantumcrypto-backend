@@ -22,4 +22,5 @@ STATIC_FILES/*
 debug.log
 .vscode
 .env
-
+venv/
+.venv
