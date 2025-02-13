@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'bb84',
     'e91',
     'shared',
+    'dps',
 ]
 
 MIDDLEWARE = [
