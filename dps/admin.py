@@ -1,3 +1,7 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import DPSGame, DPSPlayer
+
+admin.site.register(DPSGame)
+admin.site.register(DPSPlayer)
+

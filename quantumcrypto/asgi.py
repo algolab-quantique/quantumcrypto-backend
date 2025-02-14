@@ -29,7 +29,8 @@ application = ProtocolTypeRouter({
     "websocket": AuthMiddlewareStack(
         URLRouter(
             bb84.routing.websocket_urlpatterns +
-            e91.routing.websocket_urlpatterns
+            e91.routing.websocket_urlpatterns +
+            dps.routing.websocket_urlpatterns
         )
     ),
 })
