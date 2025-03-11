@@ -287,7 +287,8 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
         response = json.loads(text_data)
         event = response.get("event", None)
         message = response.get("message", None)
-        if event in ['A_PHOTONS', 'A_BASES', 'B_BASES', 'A_CIPHER',
+        print(f"Received event: {event}, message: {message}")
+        if event in ['A_PHASES', 'A_BASES', 'B_BASES', 'A_CIPHER',
                      'NEW_GAME', 'B_KEY', 'RESTART_WITHOUT_EVE',
                      'HANDSHAKE']:
             await self.channel_layer.group_send(self.game_group_name, {
