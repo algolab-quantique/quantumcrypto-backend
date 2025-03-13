@@ -28,7 +28,7 @@ STATICFILES_DIRS = [
 
 STATIC_URL = 'static/'
 # Place to collect all static file for nginx to serve as static/
-STATIC_ROOT = BASE_DIR / 'STATIC_FILES'
+STATIC_ROOT = 'STATIC_FILES'
 
 
 
