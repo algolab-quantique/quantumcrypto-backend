@@ -17,9 +17,20 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
+    BASE_DIR / 'static'
 ]
+
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/4.0/howto/static-files/
+
+STATIC_URL = 'static/'
+# Place to collect all static file for nginx to serve as static/
+STATIC_ROOT = 'STATIC_FILES'
+
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -126,7 +137,7 @@ CHANNEL_LAYERS = {
         ### Method 2: Via local Redis
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [('redis', 6379)],
         },
 
         ### Method 3: Via In-memory channel layer
@@ -148,12 +159,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.0/howto/static-files/
-
-STATIC_URL = 'static/'
-# Place to collect all static file for nginx to serve as static/
-STATIC_ROOT = BASE_DIR / 'STATIC_FILES'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
@@ -166,7 +171,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_TRUSTED_ORIGINS = ['https://bb84.physique.usherbrooke.ca',
                         'http://localhost:3000']  # enlever le http une fois
 # qu'on a un bon certificat.
-ALLOWED_HOSTS = ["bb84.physique.usherbrooke.ca", "127.0.0.1", 'localhost']
+ALLOWED_HOSTS = ["bb84.physique.usherbrooke.ca", "127.0.0.1", 'localhost', "django"]
 
 LOGGING_CONF = {'debug': {'level': 'DEBUG', 'filename': 'debug.log'},
                 'error': {'level': 'ERROR', 'filename': 'error.log'},
