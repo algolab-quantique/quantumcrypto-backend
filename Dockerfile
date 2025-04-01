@@ -22,4 +22,4 @@ RUN python manage.py collectstatic --noinput
 
 # Lancer Daphne pour servir l'application Django
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "quantumcrypto.asgi:application"]
-#CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
