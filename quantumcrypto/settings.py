@@ -18,17 +18,18 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-STATICFILES_DIRS = [
-    BASE_DIR / 'static'
-]
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = 'staticfiles/'
 # Place to collect all static file for nginx to serve as static/
-STATIC_ROOT = 'STATIC_FILES'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 
 

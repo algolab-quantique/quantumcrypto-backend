@@ -34,7 +34,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./STATIC_FILES:/app/STATIC_FILES  # Servir les fichiers statiques
+      - ./staticfiles:/app/staticfiles
     depends_on:
       - django
     networks:

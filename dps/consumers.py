@@ -289,7 +289,7 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
         message = response.get("message", None)
         print(f"Received event: {event}, message: {message}")
         if event in ['A_PHASES', 'A_BASES', 'B_BASES', 'A_CIPHER',
-                     'NEW_GAME', 'B_KEY', 'RESTART_WITHOUT_EVE',
+                     'NEW_GAME', 'B_KEY', 'SWAP_ROLES_AND_RESTART', 'B_TIMES',
                      'HANDSHAKE']:
             await self.channel_layer.group_send(self.game_group_name, {
                 'type': 'send_message',
