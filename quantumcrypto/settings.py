@@ -18,8 +18,6 @@ from decouple import config
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
@@ -138,7 +136,7 @@ CHANNEL_LAYERS = {
         ### Method 2: Via local Redis
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('redis', 6379)],
+            "hosts": [('127.0.0.1', 6379)],
         },
 
         ### Method 3: Via In-memory channel layer
