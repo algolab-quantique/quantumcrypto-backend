@@ -18,8 +18,10 @@ log.txt
 PID
 ENV/*
 STATIC_FILES/*
+staticfiles/*
 */migrations/*
 debug.log
 .vscode
 .env
-
+venv/*
+.venv
