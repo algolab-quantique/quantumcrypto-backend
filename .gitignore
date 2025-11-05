@@ -25,3 +25,5 @@ debug.log
 .env
 venv/*
 .venv
+venv_quantumcrypto
+venv_quantumcrypto/*
