@@ -12,6 +12,9 @@ from urllib.parse import parse_qs # For parsing query strings
 
 logger = logging.getLogger(__name__)
 
+# Singleton pattern: store validation indices per game room
+game_validation_indices = {}
+
 
 class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
 
@@ -300,7 +303,7 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
         event = response.get("event", None)
         message = response.get("message", None)
         if event in ['A_PHOTONS', 'A_BASES', 'B_BASES', 'A_CIPHER',
-                     'NEW_GAME', 'B_KEY', 'RESTART_WITHOUT_EVE',
+                     'NEW_GAME', 'RESTART_WITHOUT_EVE',
                      'HANDSHAKE']:
             await self.channel_layer.group_send(self.game_group_name, {
                 'type': 'send_message',
@@ -319,10 +322,25 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                 "event": event
             })
 
-        elif event == 'A_KEY':
-            validation_indices = random.sample(range(
-                message['key_length']),
-                message['validation_bits_length'])
+        elif event in ['A_KEY', 'B_KEY']:
+            # BB84 Protocol: When Eve is present, Alice and Bob must sacrifice part of their key
+            # by making it public to verify the channel integrity. Either player can initiate
+            # validation by clicking "Validate" first in the frontend.
+            # 
+            # Singleton pattern ensures both players get identical random indices regardless of
+            # who clicks first. This simplifies frontend logic and guarantees fair comparison:
+            # - First click (Alice OR Bob) → generates and caches validation_indices
+            # - Second click → retrieves cached indices
+            # Both players then compare their key values at these positions to detect eavesdropping.
+            
+            if self.game_group_name not in game_validation_indices:
+                validation_indices = random.sample(
+                    range(message['key_length']),
+                    message['validation_bits_length'])
+                game_validation_indices[self.game_group_name] = validation_indices
+            else:
+                validation_indices = game_validation_indices[self.game_group_name]
+            
             await self.channel_layer.group_send(self.game_group_name, {
                 'type': 'send_message',
                 'message': {
