@@ -11,9 +11,10 @@ from shared.models import Game, generate_code, Player
 
 
 class E91Game(Game):
+    # TODO: TESTING ONLY - restore MinValueValidator(10) after testing
     photon_number = models.IntegerField(default=10, validators=[
         MaxValueValidator(30),
-        MinValueValidator(10)
+        MinValueValidator(4)  # Temporarily changed from 10 to 4 for testing
     ])
     eve = models.BooleanField(default=False)
     validation_bits_length = models.IntegerField(default=0)
