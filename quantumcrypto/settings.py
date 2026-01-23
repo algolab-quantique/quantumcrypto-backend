@@ -167,9 +167,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # SESSION_COOKIE_SECURE = True #Décommenté une fois qu'on a un bon
 # certificat ssl
 # CSRF_COOKIE_SECURE = True #idem
+# CSRF_TRUSTED_ORIGINS: Liste des origines autorisées pour les requêtes CSRF
+# On ajoute les domaines du frontend AWS Amplify pour permettre les requêtes POST/PUT/DELETE
 CSRF_TRUSTED_ORIGINS = ['https://bb84.physique.usherbrooke.ca',
-                        'http://localhost:3000']  # enlever le http une fois
-# qu'on a un bon certificat.
+                        'http://localhost:3000',
+                        'https://quantumcrypto.app',
+                        'https://www.quantumcrypto.app',
+                        'https://www.cryptoquantique.app',
+                        'https://cryptoquantique.app',
+                        'https://prod.d336iokz5kgpku.amplifyapp.com']  # URL temporaire pour tests
+
 ALLOWED_HOSTS = ["bb84.physique.usherbrooke.ca", "127.0.0.1", 'localhost', "django"]
 
 LOGGING_CONF = {'debug': {'level': 'DEBUG', 'filename': 'debug.log'},
@@ -210,6 +217,14 @@ LOGGING = {
 }
 
 CORS_ORIGIN_ALLOW_ALL = True
+
+# CORS_ALLOW_PRIVATE_NETWORK: Requis depuis Chrome 104+ (2022)
+# Chrome considère bb84.physique.usherbrooke.ca comme un réseau "privé/inconnu"
+# car c'est un serveur universitaire (pas sur le cloud public).
+# Sans cette option, Chrome bloque les requêtes du frontend AWS vers notre backend.
+# Voir: https://developer.chrome.com/blog/private-network-access-update/
+CORS_ALLOW_PRIVATE_NETWORK = True
+
 
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
