@@ -1,17 +1,17 @@
 [Unit]
-Description=cryptoweb daphne daemon
+Description=quantumcrypto daphne daemon
 After=network.target
 
 [Service]
-User=cryptoweb
-Group=cryptoweb
-Environment="DJANGO_SETTINGS_MODULE=cryptoweb.settings"
-WorkingDirectory=/home/cryptoweb
-StandardOutput=file:/var/cryptoweb.log
-StandardError=file:/var/cryptoweb.log
-ExecStart=/home/cryptoweb/ENV/bin/daphne \
+User=quantumcrypto
+Group=quantumcrypto
+Environment="DJANGO_SETTINGS_MODULE=quantumcrypto.settings"
+WorkingDirectory=/home/quantumcrypto
+StandardOutput=file:/var/quantumcrypto.log
+StandardError=file:/var/quantumcrypto.log
+ExecStart=/home/quantumcrypto/ENV/bin/daphne \
           -u /tmp/daphne.sock -p 8008 \
-          cryptoweb.asgi:application
+          quantumcrypto.asgi:application
 
 [Install]
 WantedBy=multi-user.target
