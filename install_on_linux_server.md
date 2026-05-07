@@ -155,6 +155,8 @@ Certbot will automatically edit the nginx config to add the `listen 443 ssl` blo
 
 > **Note:** If Certbot finds an existing certificate (e.g. copied from an old server), choose **option 1 (Reinstall)** to apply it to the current nginx config without wasting a renewal.
 
+> **Warning:** Certbot modifies the nginx config file directly on the server — the file in the repo (`system_install/quantumcrypto.nginx`) will no longer reflect the live config after this step. Do not overwrite the server's nginx config with the repo file after running Certbot.
+
 ### Update Django settings
 
 In `settings.py` on the VM, update `CSRF_TRUSTED_ORIGINS` to use `https://` — Django will reject requests otherwise:
