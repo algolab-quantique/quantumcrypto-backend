@@ -63,6 +63,10 @@ To run the QuantumCrypto backend locally, follow these steps:
 
 **Note:** Make sure to also run the frontend server locally for full functionality. You can find the frontend repository [here](https://github.com/algolab-quantique/quantumcrypto-frontend).
 
+## Running on a remote server
+
+Please refer to [install_on_linux_server.md](install_on_linux_server.md) document for instructions on how to install and run the QuantumCrypto backend on a remote server.
+
 ## Contributing
 
 We welcome contributions from the community to help improve QuantumCrypto. If you'd like to contribute, please follow these guidelines:
