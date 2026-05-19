@@ -1,0 +1,31 @@
+server {
+    listen 80;
+    server_name bb84.physique.usherbrooke.ca localhost 127.0.0.1;
+    access_log /var/log/nginx/quantumcrypto.access.log;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/tmp/daphne.sock;
+        
+        # Required for Chrome Private Network Access (PNA) policy - Chrome 104+
+        # Needed when backend is on a private/university IP and frontend is public
+        add_header 'Access-Control-Allow-Private-Network' 'true' always;
+    }
+
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8008;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $server_name;
+    }
+
+    location /static/ {
+        alias /home/quantumcrypto/STATIC_FILES/;
+        autoindex on;
+    }
+}

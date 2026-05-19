@@ -6,10 +6,10 @@ Requires=docker.service
 [Service]
 TimeoutStartSec=0
 Restart=always
-ExecStartPre=-/usr/bin/docker exec %n stop
-ExecStartPre=-/usr/bin/docker rm %n
+ExecStartPre=-/usr/bin/docker stop redis
+ExecStartPre=-/usr/bin/docker rm redis
 ExecStartPre=/usr/bin/docker pull redis:5
-ExecStart=/usr/bin/docker run --rm --name %n -p 6379:6379 -d redis:5
+ExecStart=/usr/bin/docker run --rm --name redis -p 6379:6379 redis:5
 
 [Install]
 WantedBy=default.target

@@ -2,6 +2,7 @@ import json
 import logging
 from math import sin, pi
 from typing import Union
+from urllib.parse import parse_qs
 from django.db import IntegrityError, models
 from django.forms.models import model_to_dict
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -16,9 +17,9 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
 
     async def connect(self):
         game_code = self.scope['url_route']['kwargs']['game_code']
-        params = self.scope['query_string'].decode('utf-8').split('?')
-        player_name = params[0].split('=')[1]
-        is_admin = params[1].split('=')[1]
+        query_params = parse_qs(self.scope['query_string'].decode('utf-8'))
+        player_name = query_params.get('player_name', [''])[0]
+        is_admin = query_params.get('admin', ['0'])[0]
 
         self.game_group_name = f'game_{game_code}'
         await self.channel_layer.group_add(
