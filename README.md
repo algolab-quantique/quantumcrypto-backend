@@ -49,19 +49,32 @@ To run the QuantumCrypto backend locally, follow these steps:
    python manage.py migrate --run-syncdb 
    ```
 
-7. Start the development server:
-   ```
-   python manage.py runserver
-   ```
-
-8. Start the Redis Docker container that handles the WebSockets:
+7. Start Redis — **do this before the server**. Django Channels uses it as the message
+   broker for WebSockets, so multiplayer will not work without it:
    ```
    docker run --rm -p 6379:6379 -d redis:5
+   ```
+
+8. Start the development server. It serves **both** the REST API and the WebSockets —
+   `channels` replaces `runserver` with an ASGI server, so no separate process is needed:
+   ```
+   python manage.py runserver
    ```
 
 9. Open your browser and visit `http://localhost:8000` to access the QuantumCrypto backend API.
 
 **Note:** Make sure to also run the frontend server locally for full functionality. You can find the frontend repository [here](https://github.com/algolab-quantique/quantumcrypto-frontend).
+
+**Connecting the frontend:** set these in the frontend's `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:8000/ws
+```
+
+The `/ws` suffix is required — WebSocket routes are registered under `ws/` (see
+`bb84/routing.py`), and nginx uses that same prefix in production to apply the WebSocket
+upgrade headers. Without it the URL matches no route and multiplayer silently fails.
 
 ## Running on a remote server
 
