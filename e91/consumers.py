@@ -1,6 +1,5 @@
 import json
 import logging
-from math import sin, pi
 from typing import Union
 from urllib.parse import parse_qs
 from django.db import IntegrityError, models
@@ -8,7 +7,8 @@ from django.forms.models import model_to_dict
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 from e91.models import E91Game, E91Player, Game, E91Room, E91Iteration
-from e91.multiplayer import measure_side_without_eve
+from e91.multiplayer import (draw_eve_photons, measure_side_with_eve,
+                             measure_side_without_eve)
 import random
 
 logger = logging.getLogger(__name__)
@@ -234,8 +234,15 @@ class WaitingRoomConsumer(AsyncJsonWebsocketConsumer):
         try:
             room = E91Room.objects.create(game_id=game, player1=player1,
                                            player2=player2)
+            # Eve acts on every photon now, before anyone measures, and the
+            # round keeps the photons she re-sent: both players are measured
+            # against these same photons.
+            eve_angles, eve_bits = (draw_eve_photons(game.photon_number)
+                                    if eve_present else (None, None))
             iteration = E91Iteration.objects.create(room=room,
-                                                     eve_present=eve_present)
+                                                     eve_present=eve_present,
+                                                     eve_angles=eve_angles,
+                                                     eve_bits=eve_bits)
             room.save()
             iteration.save()
         except Exception as e:
@@ -339,9 +346,11 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                 room = await self.get_room(game, message['player_name'])
                 iteration = await self.get_iteration(room)
                 iteration.alice_bases = ''.join(message['bases'])
-                eve_present = message['eve_present']
-                if eve_present:
-                    iteration.alice_bits = self.eveGeneratedBits(iteration.alice_bases)
+                # The round's own record, not the browser's copy in
+                # message['eve_present'], which can go stale.
+                if iteration.eve_present:
+                    iteration.alice_bits = measure_side_with_eve(
+                        iteration.alice_bases, iteration.eve_angles, iteration.eve_bits)
                 else:
                     iteration.alice_bits = measure_side_without_eve(
                         iteration.alice_bases, iteration.bob_bits, iteration.bob_bases)
@@ -353,9 +362,10 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                 room = await self.get_room(game, message['player_name'])
                 iteration = await self.get_iteration(room)
                 iteration.bob_bases = ''.join(message['bases'])
-                eve_present = message['eve_present']
-                if eve_present:
-                    iteration.bob_bits = self.eveGeneratedBits(iteration.bob_bases)
+                # The round's own record, not the browser's copy.
+                if iteration.eve_present:
+                    iteration.bob_bits = measure_side_with_eve(
+                        iteration.bob_bases, iteration.eve_angles, iteration.eve_bits)
                 else:
                     iteration.bob_bits = measure_side_without_eve(
                         iteration.bob_bases, iteration.alice_bits, iteration.alice_bases)
@@ -475,27 +485,6 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
             'message': {'bits': bits},
             'event': f'{player}_MEASURE'
         })
-
-    def eveGeneratedBits(self, bases:str) -> str:
-        probability_threshold = sin(pi/8)**2
-        bits = []
-        for index, base in enumerate(bases):
-            rand_value = random.random()
-            if base == '1' or base == '3':
-                if rand_value > probability_threshold:
-                    outcome = 1
-                else:
-                    outcome = -1
-            elif base == '2':
-                outcome = 1
-            elif base == '4':
-                if rand_value > 0.5:
-                    outcome = 1
-                else:
-                    outcome = -1
-            bits.append('0' if outcome == 1 else '1')
-
-        return ''.join(bits)
 
 class ResultsPageConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
