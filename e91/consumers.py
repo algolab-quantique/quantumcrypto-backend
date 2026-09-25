@@ -8,6 +8,7 @@ from django.forms.models import model_to_dict
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 from e91.models import E91Game, E91Player, Game, E91Room, E91Iteration
+from e91.multiplayer import measure_side_without_eve
 import random
 
 logger = logging.getLogger(__name__)
@@ -341,10 +342,9 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                 eve_present = message['eve_present']
                 if eve_present:
                     iteration.alice_bits = self.eveGeneratedBits(iteration.alice_bases)
-                elif not iteration.bob_bits:
-                    iteration.alice_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
                 else:
-                    iteration.alice_bits = self.generateEntangledBits(iteration.bob_bits, iteration.bob_bases, iteration.alice_bases)
+                    iteration.alice_bits = measure_side_without_eve(
+                        iteration.alice_bases, iteration.bob_bits, iteration.bob_bases)
 
                 await self.save_iteration(iteration)
                 await self.send_bits(iteration.alice_bits, 'A')
@@ -356,10 +356,9 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                 eve_present = message['eve_present']
                 if eve_present:
                     iteration.bob_bits = self.eveGeneratedBits(iteration.bob_bases)
-                elif not iteration.alice_bits:
-                    iteration.bob_bits = ''.join(random.choice('01') for _ in range(game.photon_number))
                 else:
-                    iteration.bob_bits = self.generateEntangledBits(iteration.alice_bits, iteration.alice_bases, iteration.bob_bases)
+                    iteration.bob_bits = measure_side_without_eve(
+                        iteration.bob_bases, iteration.alice_bits, iteration.alice_bases)
 
                 await self.save_iteration(iteration)
                 await self.send_bits(iteration.bob_bits, 'B')
@@ -476,33 +475,6 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
             'message': {'bits': bits},
             'event': f'{player}_MEASURE'
         })
-
-    def generateEntangledBits(self, bits: str, bases: str, measurement: str) -> str:
-        probability_threshold = sin(pi/8)**2
-        entangled_bits = []
-        for index, bit in enumerate(bits):
-            if bases[index] == measurement[index]:
-                entangled_bits.append(bit)
-                continue
-            rand_value = random.random()
-            if bit == '0':
-                if rand_value > probability_threshold:
-                    outcome = 1
-                else:
-                    outcome = -1
-            else:
-                if rand_value > probability_threshold:
-                    outcome = -1
-                else:
-                    outcome = 1
-
-                # Adjust outcome based on basis comparison
-            if (measurement[index] == '1' and bases[index] == '4') or (measurement[index] == '4' and bases[index] == '1'):
-                outcome *= -1
-
-            entangled_bits.append('0' if outcome == 1 else '1')
-
-        return ''.join(entangled_bits)
 
     def eveGeneratedBits(self, bases:str) -> str:
         probability_threshold = sin(pi/8)**2
