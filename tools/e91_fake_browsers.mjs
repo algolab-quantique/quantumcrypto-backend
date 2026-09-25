@@ -11,6 +11,7 @@
 // Node 22+ (built-in WebSocket):
 //     node tools/e91_fake_browsers.mjs <games> <eve: 0|1>
 //     node tools/e91_fake_browsers.mjs 400 0
+//     node tools/e91_fake_browsers.mjs 400 1 lie   # browsers misreport Eve: the server must not care
 //
 // Every game it creates is DELETED afterwards. It refuses any server other than
 // localhost unless E91_TOOL_HOST is set — it writes to the database it targets.
@@ -79,7 +80,8 @@ async function playOne(withEve, aliceFirst, tag) {
         const bits = {};
         for (const role of aliceFirst ? ['A', 'B'] : ['B', 'A']) {
             play[role].sendEvent(`${role}_MEASURE`, {
-                bases: chosen[role], eve_present: seat.A.eve_present, player_name: nameOf[role],
+                bases: chosen[role], eve_present: browsersLie ? !seat.A.eve_present : seat.A.eve_present,
+                player_name: nameOf[role],
             });
             bits[role] = (await play[role].wait(p => p.event === `${role}_MEASURE`)).message.bits;
         }
@@ -92,6 +94,9 @@ async function playOne(withEve, aliceFirst, tag) {
 
 const games = Number(process.argv[2] ?? 20);
 const withEve = process.argv[3] === '1';
+// Optional 3rd argument "lie": the browsers send the OPPOSITE eve_present to the one
+// the server told them. The server must ignore it and trust its own round.
+const browsersLie = process.argv[4] === 'lie';
 const rows = {true: [], false: []};   // aliceFirst → rounds
 let keyBits = 0, keyErrors = 0, gamesWithIdenticalKeys = 0, ones = {A: 0, B: 0}, total = 0;
 
