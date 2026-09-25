@@ -1,6 +1,6 @@
 """
 E91 protocol physics — the acceptance suite, translated from the frontend's
-``lib/e91/protocol.test.ts``. Same 31 tests, same numbers, same tolerances:
+``lib/e91/protocol.test.ts``. Same tests, same numbers, same tolerances:
 the two implementations are only safe together if the same tests hold both.
 
 Two layers, and the second is the point:
@@ -140,6 +140,87 @@ class RunE91Protocol(unittest.TestCase):
         self.assertIn('E91 — 200 entangled pairs', text)
         self.assertIn('keys identical          : YES', text)
         self.assertRegex(text, r'E\( 0°, 45°\) =')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+def multiplayer_game(n, with_eve, first):
+    """
+    One game measured the way MULTIPLAYER measures it (the server's usage):
+    Eve's pairs are drawn at START, before anyone measures; then one player's
+    click measures ALL their photons, and the other player's click measures
+    all of theirs against them. ``first`` is 'A' or 'B' — either may be first.
+
+    Every other pipeline test goes through ``measure_pair``, where Alice is
+    always first and the pairs are measured one at a time.
+    """
+    alice_angles = generate_random_bases(n, ALICE_ANGLES)
+    bob_angles = generate_random_bases(n, BOB_ANGLES)
+    pairs = [eavesdrop(create_entangled_pair()).sent if with_eve else create_entangled_pair()
+             for _ in range(n)]
+
+    if first == 'A':
+        first_angles, second_angles = alice_angles, bob_angles
+    else:
+        first_angles, second_angles = bob_angles, alice_angles
+    first_bits = [measure_one_side(p, a) for p, a in zip(pairs, first_angles)]
+    second_bits = [measure_other_side(p, a, their_bit, their_angle)
+                   for p, a, their_bit, their_angle
+                   in zip(pairs, second_angles, first_bits, first_angles)]
+    alice_bits, bob_bits = ((first_bits, second_bits) if first == 'A'
+                            else (second_bits, first_bits))
+
+    rounds = [Round(*r) for r in zip(alice_angles, bob_angles, alice_bits, bob_bits)]
+    alice_key = sift_key_bits(alice_bits, alice_angles, bob_angles)
+    bob_key = sift_key_bits(bob_bits, alice_angles, bob_angles)
+    errors = sum(1 for x, y in zip(alice_key, bob_key) if x != y)
+    return {
+        'S': chsh_value(correlations(rounds)),
+        'alice_key': alice_key,
+        'bob_key': bob_key,
+        'key_error_rate': errors / len(alice_key),
+        'alice_ones': alice_bits.count('1') / n,
+        'bob_ones': bob_bits.count('1') / n,
+    }
+
+
+class MultiplayerShape(unittest.TestCase):
+    """
+    The same physics, called the multiplayer way, in both click orders. Who
+    clicks first must change nothing. 10 000 pairs; every bound is ≥ 4σ from
+    theory (σ(S) ≈ 0.045 without Eve, 0.058 with; σ(key error) ≈ 0.009;
+    σ(share of 1s) = 0.005).
+    """
+
+    def check_without_eve(self, first):
+        g = multiplayer_game(10000, with_eve=False, first=first)
+        self.assertGreater(g['S'], 2.6)           # 2√2 ≈ 2.828
+        self.assertLess(g['S'], 3.05)
+        self.assertEqual(g['alice_key'], g['bob_key'])  # identical, exactly
+        for share in (g['alice_ones'], g['bob_ones']):
+            self.assertGreater(share, 0.48)
+            self.assertLess(share, 0.52)
+
+    def check_with_eve(self, first):
+        g = multiplayer_game(10000, with_eve=True, first=first)
+        self.assertGreater(g['S'], 1.15)          # √2 ≈ 1.414
+        self.assertLess(g['S'], 1.7)
+        self.assertGreater(g['key_error_rate'], 0.21)   # 25 %
+        self.assertLess(g['key_error_rate'], 0.29)
+        for share in (g['alice_ones'], g['bob_ones']):
+            self.assertGreater(share, 0.48)
+            self.assertLess(share, 0.52)
+
+    def test_without_eve_alice_clicks_first(self):
+        self.check_without_eve('A')
+
+    def test_without_eve_bob_clicks_first(self):
+        self.check_without_eve('B')
+
+    def test_with_eve_alice_clicks_first(self):
+        self.check_with_eve('A')
+
+    def test_with_eve_bob_clicks_first(self):
+        self.check_with_eve('B')
 
 
 # ─────────────────────────────────────────────────────────────────────────────
