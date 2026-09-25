@@ -9,8 +9,8 @@
 //
 // Run from anywhere, with the backend and Redis up (README "Running Locally"),
 // Node 22+ (built-in WebSocket):
-//     node tools/e91_play_multiplayer.mjs <games> <eve: 0|1>
-//     node tools/e91_play_multiplayer.mjs 400 0
+//     node tools/e91_fake_browsers.mjs <games> <eve: 0|1>
+//     node tools/e91_fake_browsers.mjs 400 0
 //
 // Every game it creates is DELETED afterwards. It refuses any server other than
 // localhost unless E91_TOOL_HOST is set — it writes to the database it targets.
