@@ -7,7 +7,7 @@ from django.forms.models import model_to_dict
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 from e91.models import E91Game, E91Player, Game, E91Room, E91Iteration
-from e91.multiplayer import (draw_eve_photons, measure_side_with_eve,
+from e91.multiplayer import (draw_eve_photons, eve_summary, measure_side_with_eve,
                              measure_side_without_eve)
 import random
 
@@ -379,6 +379,21 @@ class PlayingRoomConsumer(AsyncJsonWebsocketConsumer):
                                                                         'player_name'],
                                                                     message[
                                                                         'game_code'])
+                elif abstract_game.type == 'e91':
+                    # The line about Eve is counted here, where her angles are:
+                    # the students never receive them. It is optional — a round
+                    # made before her angles were stored, or any failure, is
+                    # relayed without it: B_SUCCESS must always go through, or
+                    # both students are stuck.
+                    try:
+                        room = await self.get_room(game, message['player_name'])
+                        iteration = await self.get_iteration(room)
+                        if iteration.eve_present and iteration.eve_angles:
+                            message = {**message, 'eve_summary': eve_summary(
+                                iteration.alice_bases, iteration.bob_bases,
+                                iteration.eve_angles)}
+                    except Exception as e:
+                        logger.error(f"B_SUCCESS without Eve's line: {e}")
                 await self.channel_layer.group_send(self.game_group_name, {
                     'type': 'send_message',
                     'message': message,
