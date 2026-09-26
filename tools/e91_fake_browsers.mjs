@@ -1,8 +1,11 @@
 // Plays REAL multiplayer E91 games against a running backend, sending exactly
 // the messages the browsers send (a teacher and two students: create the game,
-// JOIN, START, A_MEASURE / B_MEASURE), then checks the physics over all of
-// them: identical keys without Eve, the four Bell terms and S, both sides
-// ~50 % ones — half the games with Alice clicking first, half with Bob.
+// JOIN, START, A_MEASURE / B_MEASURE, Bob's B_SUCCESS), then checks the physics
+// over all of them: identical keys without Eve, the four Bell terms and S, both
+// sides ~50 % ones — half the games with Alice clicking first, half with Bob.
+// And the line about Eve the server adds to B_SUCCESS: both students get the
+// same numbers, n = m = photons, l = the key length, k/l ~ 1/4 pooled; none
+// without Eve.
 //
 // Why pool many games: a real game is capped at 30 photons, far too few to
 // judge S. 400 games give ~650 rounds per Bell term, σ(S) ≈ 0.04.
@@ -85,8 +88,12 @@ async function playOne(withEve, aliceFirst, tag) {
             });
             bits[role] = (await play[role].wait(p => p.event === `${role}_MEASURE`)).message.bits;
         }
+        // Bob finishes: the server relays B_SUCCESS to both students of the room.
+        play.B.sendEvent('B_SUCCESS', {game_code: game.code, player_name: nameOf.B});
+        const success = {A: (await play.A.wait(p => p.event === 'B_SUCCESS')).message,
+                         B: (await play.B.wait(p => p.event === 'B_SUCCESS')).message};
         for (const s of [teacher, ...students, play.A, play.B]) s.close();
-        return {chosen, bits, evePresent: seat.A.eve_present};
+        return {chosen, bits, evePresent: seat.A.eve_present, success};
     } finally {
         await fetch(`${API}/games/e91/${game.id}/`, {method: 'DELETE'});  // leave the DB clean
     }
@@ -99,10 +106,18 @@ const withEve = process.argv[3] === '1';
 const browsersLie = process.argv[4] === 'lie';
 const rows = {true: [], false: []};   // aliceFirst → rounds
 let keyBits = 0, keyErrors = 0, gamesWithIdenticalKeys = 0, ones = {A: 0, B: 0}, total = 0;
+let summaryProblems = 0, eveHeld = 0, eveKeyBits = 0;
 
 for (let g = 0; g < games; g++) {
     const aliceFirst = g % 2 === 0;
     const r = await playOne(withEve, aliceFirst, `${Date.now() % 100000}${g}`);
+    const key = r.chosen.A.filter((a, i) => a === r.chosen.B[i]).length;
+    const s = r.success.A.eve_summary;
+    const ok = JSON.stringify(s) === JSON.stringify(r.success.B.eve_summary) && (r.evePresent
+        ? s !== undefined && s.n === PHOTONS && s.m === PHOTONS && s.l === key && s.k >= 0 && s.k <= s.l
+        : s === undefined);
+    if (!ok) summaryProblems++;
+    if (r.evePresent && s) { eveHeld += s.k; eveKeyBits += s.l; }
     let errs = 0;
     for (let i = 0; i < PHOTONS; i++) {
         const a = r.chosen.A[i], b = r.chosen.B[i], x = r.bits.A[i], y = r.bits.B[i];
@@ -127,5 +142,7 @@ console.log(JSON.stringify({ terms_aliceFirst: terms(rows.true), terms_bobFirst:
     keyBits, keyErrors, keyErrorRate: (keyErrors / keyBits).toFixed(3),
     gamesWithIdenticalKeys: `${gamesWithIdenticalKeys}/${games}`,
     aliceOnes: (ones.A / total).toFixed(3), bobOnes: (ones.B / total).toFixed(3),
+    eveSummaryProblems: `${summaryProblems}/${games}`,
+    eveHoldsOfKey: eveKeyBits ? (eveHeld / eveKeyBits).toFixed(3) : '-',
 }, null, 1));
 process.exit(0);
