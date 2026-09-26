@@ -13,7 +13,7 @@ Pure Python, no Django import, so it is tested with plain ``unittest``
 
 from e91.protocol import (
     angle_of_basis_id, basis_id_of_angle, create_entangled_pair, create_product_pair,
-    eavesdrop, measure_one_side, measure_other_side,
+    eavesdrop, measure_one_side, measure_other_side, sift_key_bits,
 )
 
 
@@ -65,3 +65,22 @@ def measure_side_with_eve(my_bases: str, eve_angles: str, eve_bits: str) -> str:
         measure_one_side(create_product_pair(angle_of_basis_id(eve_angle), eve_bit),
                          angle_of_basis_id(mine))
         for mine, eve_angle, eve_bit in zip(my_bases, eve_angles, eve_bits, strict=True))
+
+
+def eve_summary(alice_bases: str, bob_bases: str, eve_angles: str) -> dict[str, int]:
+    """
+    The round-end line about Eve, as solo shows it (frontend Task 72): she
+    measured ``n`` photons of ``m``, and holds ``k`` of the ``l`` key bits for
+    certain — those where her angle was the basis both players used, so the
+    photon she re-sent carried exactly their bit. Anywhere else she holds a
+    guess, not a read. The same count as solo's (``solo-basis-tab.tsx``).
+
+    Raises ValueError if the stored strings have different lengths.
+    """
+    alice = [angle_of_basis_id(b) for b in alice_bases]
+    bob = [angle_of_basis_id(b) for b in bob_bases]
+    eve_on_key = sift_key_bits(list(eve_angles), alice, bob)
+    alice_on_key = sift_key_bits(list(alice_bases), alice, bob)
+    return {'n': len(eve_angles), 'm': len(alice_bases),
+            'k': sum(e == a for e, a in zip(eve_on_key, alice_on_key)),
+            'l': len(alice_on_key)}

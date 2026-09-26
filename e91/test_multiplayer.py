@@ -9,7 +9,7 @@ import random
 import unittest
 
 from e91.multiplayer import (
-    draw_eve_photons, measure_side_with_eve, measure_side_without_eve,
+    draw_eve_photons, eve_summary, measure_side_with_eve, measure_side_without_eve,
 )
 from e91.protocol import Round, angle_of_basis_id, chsh_value, correlations
 
@@ -134,6 +134,34 @@ class WithEve(unittest.TestCase):
     def test_misaligned_eve_strings_are_refused(self):
         with self.assertRaises(ValueError):
             measure_side_with_eve('123', '12', '010')
+
+
+class EveSummary(unittest.TestCase):
+    """The round-end line: Eve measured n photons of m, and holds k of the l key bits."""
+
+    def test_counts_the_key_bits_where_eve_used_the_keys_basis(self):
+        # Key = positions 1, 2, 3 (same basis). Eve's angle matches Alice's at 1
+        # and 3 — and at 0, which is not key, so it must not count.
+        self.assertEqual(eve_summary('1232', '4232', '1212'),
+                         {'n': 4, 'm': 4, 'k': 2, 'l': 3})
+
+    def test_no_key_bits_means_nothing_to_hold(self):
+        self.assertEqual(eve_summary('11', '44', '14'),
+                         {'n': 2, 'm': 2, 'k': 0, 'l': 0})
+
+    def test_a_whole_round_eve_holds_about_a_quarter_of_the_key(self):
+        # She picks among four angles evenly; the key's basis is one of them.
+        eve_angles, _ = draw_eve_photons(10000)
+        s = eve_summary(random_bases(10000, '123'), random_bases(10000, '234'), eve_angles)
+        self.assertEqual((s['n'], s['m']), (10000, 10000))
+        self.assertGreater(s['l'], 1900)  # 2/9 of the pairs, ~2222
+        # sigma(k/l) ~ 0.009: bounds at 4 sigma
+        self.assertGreater(s['k'] / s['l'], 0.21)
+        self.assertLess(s['k'] / s['l'], 0.29)
+
+    def test_misaligned_strings_are_refused(self):
+        with self.assertRaises(ValueError):
+            eve_summary('123', '23', '123')
 
 
 if __name__ == '__main__':
