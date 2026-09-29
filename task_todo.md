@@ -186,3 +186,46 @@ sudo systemctl restart bb84.service
 
 > [!NOTE]
 > The `CORS_ALLOW_PRIVATE_NETWORK = True` setting + latest `django-cors-headers` must be deployed for Chrome to work.
+
+---
+
+## 🐳 docker-compose is broken — Redis host mismatch (found 2026-08-27, NOT urgent)
+
+**Status**: 🟡 OPEN — diagnosed, not fixed. Nobody uses docker-compose today (local dev and the
+server install both work), so this is low priority. Recorded so it is not re-diagnosed later.
+
+**Symptom**: bring the stack up with `docker compose up` and WebSockets/multiplayer fail.
+HTTP works fine.
+
+**Root cause** (one line): `quantumcrypto/settings.py` hardcodes the channel layer at
+
+```python
+"hosts": [('127.0.0.1', 6379)]
+```
+
+That address is correct in the two setups we actually use, and wrong in the third:
+
+| Setup | Django runs | Redis is | `127.0.0.1` correct? |
+|---|---|---|---|
+| Local dev (`runserver` + `docker run redis`) | on the host | on the host (port published) | ✅ yes |
+| Server (`bb84.service` + `redis.service`) | on the host (daphne native) | on the host (docker `-p 6379:6379`) | ✅ yes |
+| **docker-compose** | **inside the `django` container** | separate `redis` container | ❌ **no** — `127.0.0.1` is the Django container itself |
+
+Under docker-compose Redis is reachable at the **hostname `redis`** (the compose service name),
+not at loopback.
+
+**Fix** — make the host configurable instead of hardcoded:
+
+```python
+import os
+REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
+...
+"hosts": [(REDIS_HOST, 6379)]
+```
+
+then add `- REDIS_HOST=redis` to the `django` service environment in `docker-compose.yml`.
+Local dev and the server keep working unchanged (they just don't set the variable).
+
+**Decide when picked up:** fix it as above, or delete `docker-compose.yml` + `nginx/nginx.conf`
+if we do not intend to support that path — dead broken config is worse than none. Note the
+docker nginx config itself is fine (`location /ws/` → `django:8000` with upgrade headers).

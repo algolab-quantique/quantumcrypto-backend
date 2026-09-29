@@ -133,14 +133,21 @@ CHANNEL_LAYERS = {
         #     ],
         # },
 
-        ### Method 2: Via local Redis
+        ### Method 2: Via local Redis  <<< THIS IS THE ACTIVE METHOD >>>
+        ## Requires Redis reachable at 127.0.0.1:6379 — start it with:
+        ##     docker run --rm -p 6379:6379 -d redis:5
+        ## Note: '127.0.0.1' is correct when Django runs on the HOST (local dev and
+        ## the server install, where redis.service publishes the port to the host).
+        ## It does NOT work under docker-compose, where Django runs in a container
+        ## and Redis is a separate container reachable at the hostname 'redis'.
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
             "hosts": [('127.0.0.1', 6379)],
         },
 
         ### Method 3: Via In-memory channel layer
-        ## Using this method.
+        ## NOT used (kept for reference). Needs no Redis, but only works within a
+        ## single process, so it cannot back a multi-process deployment.
         # "BACKEND": "channels.layers.InMemoryChannelLayer"
     },
 }

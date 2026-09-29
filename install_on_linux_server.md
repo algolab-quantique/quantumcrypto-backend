@@ -38,6 +38,8 @@ sudo -u quantumcrypto bash -c "cd /home/quantumcrypto && git clone https://githu
 
 ## 3. Create the virtual environment and install dependencies
 
+Requires **Python 3.10 or newer** (check with `python3 --version`).
+
 ```bash
 sudo -u quantumcrypto bash -c "cd /home/quantumcrypto && python3 -m venv ENV && source ENV/bin/activate && pip install -r requirements.txt && pip install daphne"
 ```
@@ -196,7 +198,7 @@ When you pull new code from GitHub to the server, you need to apply the changes 
 cd /home/quantumcrypto
 
 # 2. Pull the latest code
-git pull origin main
+git pull origin development
 
 # 3. Activate the Python virtual environment
 source ENV/bin/activate
@@ -210,3 +212,9 @@ python manage.py collectstatic --noinput
 # 6. Restart the Daphne server to load the new Python code
 sudo systemctl restart bb84
 ```
+
+## 13. Moving this server to another VM — TODO
+
+Not written yet. With SQLite all the data is one file, `db.sqlite3`: a fresh install (sections 1–11) on
+the new VM, then copy `db.sqlite3` over while `bb84` is stopped on both — plus DNS and the HTTPS
+certificate. To be written and tested when it is needed.

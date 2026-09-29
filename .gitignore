@@ -27,3 +27,6 @@ venv/*
 .venv
 venv_quantumcrypto
 venv_quantumcrypto/*
+
+# Snapshots made by tools/e91_add_eve_columns.py — they contain data, never commit them
+db.sqlite3.backup-*

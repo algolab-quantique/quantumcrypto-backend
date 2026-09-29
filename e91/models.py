@@ -77,6 +77,12 @@ class E91Iteration(models.Model):
     alice_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
     bob_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
     bob_bases = models.CharField(max_length=30, default=None, null=True, blank=True)
+    # The photons Eve re-sent, one character per photon, drawn at START when
+    # this round has Eve: her angles as basis ids '1'..'4', and their bits.
+    # Both players are measured against them (e91/multiplayer.py). Added to
+    # existing databases by tools/e91_add_eve_columns.py.
+    eve_angles = models.CharField(max_length=30, default=None, null=True, blank=True)
+    eve_bits = models.CharField(max_length=30, default=None, null=True, blank=True)
     elapsed_time = models.DurationField(null=True, blank=True, default=timedelta)
 
     def save(self, *args, **kwargs):
