@@ -38,8 +38,7 @@ sudo -u quantumcrypto bash -c "cd /home/quantumcrypto && git clone https://githu
 
 ## 3. Create the virtual environment and install dependencies
 
-**Python 3.10 or newer is required** (the E91 code uses `str | None` and `zip(strict=True)`); on an
-older Python the server does not start at all, for every protocol. Check with `python3 --version`.
+Requires **Python 3.10 or newer** (check with `python3 --version`).
 
 ```bash
 sudo -u quantumcrypto bash -c "cd /home/quantumcrypto && python3 -m venv ENV && source ENV/bin/activate && pip install -r requirements.txt && pip install daphne"
@@ -54,9 +53,6 @@ sudo mkdir -p /home/quantumcrypto/STATIC_FILES
 sudo cp -r /home/quantumcrypto/staticfiles/* /home/quantumcrypto/STATIC_FILES/
 sudo chown -R quantumcrypto:quantumcrypto /home/quantumcrypto/
 ```
-
-On a **new, empty** server this builds every table from the current code, **including** the E91 Eve
-columns — `tools/e91_add_eve_columns.py` is not needed here (it would only print "Nothing to do").
 
 ## 5. Verify Django settings on the VM
 
@@ -195,59 +191,30 @@ Expected response:
 
 ## 12. Updating the Code
 
-When you pull new code from GitHub to the server, you need to apply the changes and restart the services.
-Do it **when no class is playing**: a game in progress during the restart can break.
+When you pull new code from GitHub to the server, you need to apply the changes and restart the services:
 
 ```bash
 # 1. Go to the project directory
 cd /home/quantumcrypto
 
-# 2. Back up the database (one file) — the way back if anything goes wrong
-cp db.sqlite3 ~/db.sqlite3.before-update-$(date +%Y%m%d-%H%M)
-
-# 3. Note the current commit (to roll back to), then pull the latest code
-git log -1 --oneline
+# 2. Pull the latest code
 git pull origin development
 
-# 4. Activate the Python virtual environment
+# 3. Activate the Python virtual environment
 source ENV/bin/activate
 
-# 5. Apply database changes
-#    --run-syncdb only CREATES missing tables; it never adds a column to an existing one.
+# 4. Apply database migrations (if any)
 python manage.py migrate --run-syncdb
-#    New columns on existing tables need their own step — see "Database changes by release" below.
 
-# 6. Collect static files (if CSS/JS changed)
+# 5. Collect static files (if CSS/JS changed)
 python manage.py collectstatic --noinput
 
-# 7. Check the new code loads BEFORE restarting, while the old server still runs. This imports
-#    exactly what Daphne imports, including every WebSocket consumer — `manage.py check` does NOT
-#    (tested: it passes on a broken consumers file). Expect the line "OK".
-DJANGO_SETTINGS_MODULE=quantumcrypto.settings python -c "import quantumcrypto.asgi; print('OK')"
-
-# 8. Restart the Daphne server to load the new Python code, and check it is running
+# 6. Restart the Daphne server to load the new Python code
 sudo systemctl restart bb84
-sudo systemctl status bb84 --no-pager
 ```
-
-**Roll back** (if the new version misbehaves): `git checkout <the commit noted in step 3>` then
-`sudo systemctl restart bb84`. Columns added in step 5 can stay — older code ignores them. To undo data
-changes too, stop `bb84`, copy the step-2 backup over `db.sqlite3`, and start it again.
-
-### Database changes by release
-
-This project has no Django migration history (migrations are git-ignored and databases are built with
-`--run-syncdb`), so a new column on an existing table is added by a script, **once**, on each existing
-database — between step 5 and step 7 above:
-
-| release | what changes | run once, on an existing database |
-|---|---|---|
-| E91 multiplayer with a real Eve (2026-09) | 2 empty columns `eve_angles`, `eve_bits` on `e91_e91iteration`; every row kept | `python tools/e91_add_eve_columns.py` — it saves its own backup first, prints "Rows before: N, after: N", and is safe to run twice ("Nothing to do") |
-
-A new, empty server does not need these (section 4 builds the tables with every column).
 
 ## 13. Moving this server to another VM — TODO
 
-Not written yet. With SQLite the data is **one file** (`db.sqlite3`): the move is a fresh install
-(sections 1–11) on the new VM, then stopping `bb84` on both, copying `db.sqlite3` over, and starting the
-new one — plus DNS and the HTTPS certificate. To be written and tested when it is needed.
+Not written yet. With SQLite all the data is one file, `db.sqlite3`: a fresh install (sections 1–11) on
+the new VM, then copy `db.sqlite3` over while `bb84` is stopped on both — plus DNS and the HTTPS
+certificate. To be written and tested when it is needed.
